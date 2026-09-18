@@ -1,0 +1,19 @@
+{
+  // Type-checks the decision code as a hooks module sees the world: no Node,
+  // no Bun, no DOM. Settings follow the header of .claude/types/claude-code.d.ts.
+  // Run: bun run check:hooks
+  "compilerOptions": {
+    "target": "es2023",
+    "lib": ["es2023"],
+    "types": [],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noEmit": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/compact", ".claude/types/claude-code.d.ts"]
+}

@@ -1,0 +1,22 @@
+{
+  "name": "typesafe-experiments",
+  "version": "0.6.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "check": "tsc --noEmit -p .",
+    "check:hooks": "tsc --noEmit -p tsconfig.hooks.json",
+    "replay": "bun experiments/01-compaction-replay/replay.ts",
+    "label": "bun experiments/09-exchange-labels/label.ts",
+    "eval-labels": "bun experiments/09-exchange-labels/eval.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "1.4.2"
+  },
+  "peerDependencies": {
+    "typescript": "^7"
+  },
+  "dependencies": {
+    "@typesafe-ai/sdk": "0.6.0"
+  }
+}
