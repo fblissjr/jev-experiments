@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.1
+
+- The Jev synthetic results doc adds freudagent's independent check, which reproduced every figure, and a frustration breakdown. Jev pulls toward the middle level and never picks the top one. About half of its misses on calm replies are arguable polite corrections, the rest plain misses. Frustration needs sharper level wording before it is used.
+
 ## 0.7.0
 
 - Experiment 09 gains a Jev labeler (`src/jevLabeler.ts`): all four questions per exchange in one request, choice answers kept with their probabilities, and a score kept as its most probable level. `labeler_version` comes from the response's model id.

@@ -27,8 +27,22 @@ Each labeler is compared on the same rows as the majority class. Every options h
 Agreement with the key, grouped by the probability Jev gave its answer:
 
 - For `user_response`, `correction_kind` and `rule_violated`, every answer Jev gave at 0.9 or more agreed with the key. Across each question, Jev's mean probability was a few points below its accuracy: slightly under-confident.
-- `frustration` is the exception. At 0.9 or more, about three answers in four agreed, against a mean probability near 97%, so Jev was over-confident there. It mostly rated the synthetic corrections as frustrated where the key calls them calm.
+- `frustration` is the exception. At 0.9 or more, about three answers in four agreed, against a mean probability near 97%, so Jev was over-confident there.
 - The groups below 0.9 hold a handful of rows each; at this size they carry no signal.
+
+## Frustration, broken down
+
+A single accuracy figure hides two different problems here:
+
+- Jev pulls toward the middle of the scale. It never chose "very angry", even for the replies the key rates at that level. Where the key says calm, it said "frustrated but civil" about half the time.
+- About half of those calm-to-civil answers are polite corrections, such as a request to drop emojis. That is arguable: "frustrated but civil" is loose wording, and the key may be strict.
+- The other half are approvals, questions, redirects, a "continue" and a new task. Those are plain misses.
+
+So the result mixes a vague question with a real bias toward level 1. The level descriptions need sharper wording in a new question version before frustration belongs in any headline.
+
+## Independent check
+
+freudagent loaded these labels through its own ingest and comparison view, in a scratch database, with the answer key beside them. It rejected nothing, accepted the questions as identical to its own, and reproduced every agreement and calibration figure above.
 
 ## Cost and time
 
@@ -42,7 +56,6 @@ About $0.002 in total: TypeSafe bills input at $0.042 per million tokens, and ea
 
 ## Next
 
-- An independent check: freudagent runs these labels through its own ingest and comparison view.
 - A second synthetic set that the builder and the question wording were never tuned against.
 - A v2 state with the assistant's visible text, measured against v1 on synthetic text first. It stays off for real sessions unless the owner opts in.
-- `frustration`: check whether the over-confidence persists on a second set before treating Jev's frustration labels as usable.
+- `frustration`: a v2 question with sharper level wording, checked on a second set, before Jev's frustration labels are used for anything.
