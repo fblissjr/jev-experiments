@@ -4,7 +4,7 @@ last updated: 2026-09-18
 
 Label each typed reply the owner gave the assistant: did it approve, correct, redirect or ask? If it corrected, what kind of correction was it, and did the reply say a rule in force was broken? The labels feed freudagent, which rolls them up into recurring patterns and proposes rules for the owner to approve. The experiment asks whether Jev labels these better than a keyword rule, and whether its confidence can be trusted.
 
-Status: the unit builder, label contract, keyword rule and scoring are built and checked against a synthetic answer key. No model has labeled anything. The owner's blind labels and any Jev run come later.
+Status: the unit builder, label contract, keyword rule, Jev labeler and scoring are built. Jev has labeled the synthetic set only (`docs/2026-09-18-exchange-labels-jev-synthetic.md`). The owner's blind labels come next; real sessions are not sent until an allowlist and the owner's review of each run exist.
 
 ## Owner decisions, 2026-09-18
 
@@ -44,7 +44,7 @@ The question definitions live in both repositories: `src/labels.ts` here and fre
 | majority class | computed in scoring |
 | owner, blind (human) | next: a labeling sheet over a sample |
 | Claude as reviewer (model) | not built; needs the owner's go-ahead on usage |
-| Jev (model) | not built; needs a key, the owner's reading of the egress rule, and chosen sessions |
+| Jev (model) | built, `src/jevLabeler.ts`; run on synthetic text only (`--egress synthetic`) |
 
 ## Hypothesis and kill condition
 
@@ -52,7 +52,7 @@ Jev's labels agree with the owner's held-out labels more than the keyword rule's
 
 ## Egress
 
-None so far. The keyword rule runs locally, and the warehouses live under the ccutils archive directory, outside any checkout.
+The keyword rule runs locally, and the warehouses live under the ccutils archive directory, outside any checkout. The Jev labeler sends each exchange's state to TypeSafe, and today only for a synthetic source: it refuses without `--egress synthetic`, a key, and a source named `synthetic-...`. Before any request, a state must hold exactly the v1 fields and pass `src/egress.ts`, which refuses the loaded API key or any slice of it and common credential shapes. `sent.jsonl` records each request's hash, size, status, model and time, never the key, a header or the body. `--dry-run` builds and checks every request without sending.
 
 The minimum for any model arm that sends data, agreed with freudagent: only text the owner typed and the assistant's visible text; never thinking, tool inputs or tool results; a secret scan that skips a unit on a hit; a log of what was sent by content hash; only sessions the owner picked.
 

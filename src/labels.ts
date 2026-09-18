@@ -163,25 +163,60 @@ export function optionsFor(question: QuestionDef, unit: Unit, history: readonly 
   return question.options as Pair[];
 }
 
+/** One question put to a labeler for a unit, with the options it is asked over (null for a score). */
+export interface Ask {
+  question: QuestionDef;
+  options: Pair[] | null;
+}
+
+/** A labeler's answer to one question. Probabilities are a model's; rules and people leave them out. */
+export interface Answer {
+  value: string | number;
+  probability?: number;
+  probabilities?: Record<string, number>;
+  confidence?: number;
+}
+
+/** A labeler's answers for one unit, with the version that produced them, or a reason it gave none. */
+export type LabelOutcome = { version: string; answers: ReadonlyMap<string, Answer> } | { fallback: string };
+
 export interface Labeler {
   kind: LabelerKind;
   name: string;
-  version: string;
-  /** A value for the question, or undefined to leave it unlabeled. */
-  label(question: QuestionDef, options: Pair[] | null, state: State): string | number | undefined;
+  /** Answers the asks it can for one unit's state; a question it leaves out is not labeled. */
+  label(state: State, asks: readonly Ask[]): Promise<LabelOutcome>;
 }
 
-/** Every label row one labeler writes for one unit. */
-export function labelUnit(unit: Unit, labeler: Labeler, source: string, history: readonly RuleVersion[] | undefined, now: string): LabelRow[] {
-  if (unit.unit_type !== 'exchange') return [];
+/** The questions a unit is asked, with their options. */
+export function asksFor(unit: Unit, history: readonly RuleVersion[] | undefined): Ask[] {
+  return QUESTIONS.flatMap((question) => {
+    const options = optionsFor(question, unit, history);
+    return options === undefined ? [] : [{ question, options }];
+  });
+}
+
+/**
+ * Every label row one labeler writes for one unit, or the reason it wrote
+ * none. `clock` stamps `labeled_at` when the answers arrive.
+ */
+export async function labelUnit(
+  unit: Unit,
+  labeler: Labeler,
+  source: string,
+  history: readonly RuleVersion[] | undefined,
+  clock: () => string,
+): Promise<{ rows: LabelRow[]; fallback?: string }> {
+  if (unit.unit_type !== 'exchange') return { rows: [] };
   const { state, truncated } = stateOf(unit);
+  const asks = asksFor(unit, history);
+  const outcome = await labeler.label(state, asks);
+  if ('fallback' in outcome) return { rows: [], fallback: outcome.fallback };
+  const labeledAt = clock();
   const inputHash = sha256(JSON.stringify(state));
   const rows: LabelRow[] = [];
-  for (const question of QUESTIONS) {
-    const options = optionsFor(question, unit, history);
-    if (options === undefined) continue;
-    const value = labeler.label(question, options, state);
-    if (value === undefined) continue;
+  for (const { question, options } of asks) {
+    const answer = outcome.answers.get(question.question_id);
+    if (!answer) continue;
     rows.push({
       unit_type: unit.unit_type,
       source,
@@ -194,17 +229,17 @@ export function labelUnit(unit: Unit, labeler: Labeler, source: string, history:
       options_hash: options === null ? null : optionsHash(options),
       labeler_kind: labeler.kind,
       labeler: labeler.name,
-      labeler_version: labeler.version,
-      value,
-      probability: null,
-      probabilities: null,
-      confidence: null,
+      labeler_version: outcome.version,
+      value: answer.value,
+      probability: answer.probability ?? null,
+      probabilities: answer.probabilities ?? null,
+      confidence: answer.confidence ?? null,
       input_content_hash: inputHash,
       state_truncated: truncated,
-      labeled_at: now,
+      labeled_at: labeledAt,
     });
   }
-  return rows;
+  return { rows };
 }
 
 /** The questions file written beside every label file. */

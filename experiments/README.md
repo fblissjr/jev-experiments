@@ -31,4 +31,4 @@ Ordered by dependency. Compaction comes first because it is what prompted the re
 | 06 | Skill routing on `prompt.submit` or `prompt.context` | the harness's own skill selection | not started |
 | 07 | Answering the harness's own `$.model.classify` calls with Jev | core's classifier | unverified: where core calls it is not known |
 | 08 | `tool.call` guard for risky actions | permission rules alone | not started |
-| 09 | Exchange labels: each typed reply of the owner labeled for approval, correction kind, rule broken and frustration, feeding freudagent | a keyword rule, the majority class, and the owner's blind labels | unit builder and keyword arm built and checked against a synthetic key 2026-09-18; no model arm yet |
+| 09 | Exchange labels: each typed reply of the owner labeled for approval, correction kind, rule broken and frustration, feeding freudagent | a keyword rule, the majority class, and the owner's blind labels | unit builder, keyword and Jev arms built; Jev run on the synthetic set 2026-09-18; real sessions wait on an allowlist and the owner's review |

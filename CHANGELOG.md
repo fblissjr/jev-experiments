@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.7.0
+
+- Experiment 09 gains a Jev labeler (`src/jevLabeler.ts`): all four questions per exchange in one request, choice answers kept with their probabilities, and a score kept as its most probable level. `labeler_version` comes from the response's model id.
+- A sending guard (`src/egress.ts`) refuses a state that holds the loaded API key, any slice of it, or a common credential shape. The label command sends only a synthetic source, only with `--egress synthetic`, logs requests by hash, and has `--dry-run` and `--limit`.
+- Labelers answer a unit's questions together and asynchronously. The keyword labels are byte-identical after the change, apart from timestamps.
+- Scoring adds calibration: agreement with the key grouped by the labeler's probability.
+- First results in `docs/2026-09-18-exchange-labels-jev-synthetic.md`. On the synthetic set, Jev is well ahead of the keyword rule and the majority class on the three choice questions. It is behind both, and over-confident, on frustration.
+
 ## 0.6.0
 
 The first public version. Earlier versions were local only.

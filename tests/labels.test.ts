@@ -73,11 +73,12 @@ describe('stateOf and labelUnit', () => {
     expect(stateOf(unit('short')).truncated).toBe(false);
   });
 
-  test('without a rule history rule_violated is not asked; a score has no options hash; an interrupt gets no labels', () => {
-    const labelRows = labelUnit(unit('no, run the tests'), KEYWORD_LABELER, 'test', undefined, 'now');
+  test('without a rule history rule_violated is not asked; a score has no options hash; an interrupt gets no labels', async () => {
+    const { rows: labelRows } = await labelUnit(unit('no, run the tests'), KEYWORD_LABELER, 'test', undefined, () => 'now');
     expect(labelRows.map((r) => r.question_id)).toEqual(['user_response', 'correction_kind', 'frustration']);
     expect(labelRows.find((r) => r.question_id === 'frustration')!.options_hash).toBeNull();
-    expect(labelUnit({ ...unit(''), unit_type: 'interrupt' }, KEYWORD_LABELER, 'test', undefined, 'now')).toEqual([]);
+    expect(labelRows.every((r) => r.labeler_version === 'keyword-v1' && r.probability === null)).toBe(true);
+    expect((await labelUnit({ ...unit(''), unit_type: 'interrupt' }, KEYWORD_LABELER, 'test', undefined, () => 'now')).rows).toEqual([]);
   });
 });
 

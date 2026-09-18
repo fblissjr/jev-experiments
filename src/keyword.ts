@@ -1,7 +1,7 @@
 // The no-model control for experiment 09: keyword rules over the reply.
 // Pure. Deliberately plain, so a model has something honest to beat.
 
-import type { Labeler, Pair, QuestionDef, State } from './labels.ts';
+import type { Answer, Ask, Labeler, Pair, State } from './labels.ts';
 
 const lower = (text: string) => text.trim().toLowerCase();
 
@@ -65,22 +65,30 @@ export function keywordRuleViolated(reply: string, options: readonly Pair[]): st
   return best;
 }
 
+function keywordAnswer(questionId: string, options: Pair[] | null, reply: string): string | number | undefined {
+  switch (questionId) {
+    case 'user_response':
+      return keywordUserResponse(reply);
+    case 'correction_kind':
+      return keywordCorrectionKind(reply);
+    case 'frustration':
+      return keywordFrustration(reply);
+    case 'rule_violated':
+      return options ? keywordRuleViolated(reply, options) : undefined;
+    default:
+      return undefined;
+  }
+}
+
 export const KEYWORD_LABELER: Labeler = {
   kind: 'rule',
   name: 'keyword',
-  version: 'keyword-v1',
-  label(question: QuestionDef, options: Pair[] | null, state: State) {
-    switch (question.question_id) {
-      case 'user_response':
-        return keywordUserResponse(state.reply);
-      case 'correction_kind':
-        return keywordCorrectionKind(state.reply);
-      case 'frustration':
-        return keywordFrustration(state.reply);
-      case 'rule_violated':
-        return options ? keywordRuleViolated(state.reply, options) : undefined;
-      default:
-        return undefined;
+  async label(state: State, asks: readonly Ask[]) {
+    const answers = new Map<string, Answer>();
+    for (const { question, options } of asks) {
+      const value = keywordAnswer(question.question_id, options, state.reply);
+      if (value !== undefined) answers.set(question.question_id, { value });
     }
+    return { version: 'keyword-v1', answers };
   },
 };

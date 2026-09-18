@@ -8,7 +8,7 @@
 
 import { readFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
-import { score, type ScoredRow } from '../../src/scoring.ts';
+import { calibration, score, type ScoredRow } from '../../src/scoring.ts';
 
 const { values } = parseArgs({ options: { labels: { type: 'string' }, units: { type: 'string' }, key: { type: 'string' } } });
 if (!values.labels || !values.units || !values.key) {
@@ -46,4 +46,13 @@ for (const s of score(labels, key)) {
   console.log(
     `  ${s.labeler}: compared ${s.compared}, agree ${s.agree} (${pct(s.agree, s.compared)}); on the same rows, majority "${s.majority}" gets ${s.majorityHits} (${pct(s.majorityHits, s.compared)}); options_hash mismatches ${s.hashMismatch}`,
   );
+}
+
+const calibrated = calibration(labels, key);
+if (calibrated.length > 0) {
+  console.log('\ncalibration: agreement with the key by the probability the labeler gave its answer');
+  for (const c of calibrated) {
+    console.log(`  ${c.question_id} / ${c.labeler}: mean probability ${pct(c.meanProbability, 1)}, agreement ${pct(c.accuracy, 1)} over ${c.n}`);
+    for (const b of c.buckets) console.log(`    ${b.from.toFixed(1)}-${(b.from + 0.1).toFixed(1)}: ${b.n} rows, mean probability ${pct(b.meanProbability, 1)}, agreement ${pct(b.agree, b.n)}`);
+  }
 }
