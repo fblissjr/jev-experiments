@@ -11,7 +11,7 @@ Status: draft protocol. No code. It starts once experiment 10's checker exists, 
 - The plan is hierarchical and relational, parent to child: scene, subjects, their attributes, actions, shots. A model fills it, whether Jev or another.
 - The branch may change anything that helps: the schema, the contract, the serializer. It is experimental.
 - It is built with the engine repo's own session.
-- Shot headers carry no timestamps. The engine session is making that change on the engine's main branch, which the experiment branch starts from.
+- Shot headers carry no timestamps. The engine repo's session has been asked to make that change on the engine's main branch, which the experiment branch starts from.
 
 ## Where Jev fits
 

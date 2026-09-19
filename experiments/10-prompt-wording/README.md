@@ -57,8 +57,8 @@ Nouls, version `v1`, in `src/wordingQuestions.ts`. The examples in their criteri
 
 ## Measure
 
-- Matched pairs, the headline. For each fixed prompt, compare the question's answer on the unit where the fix landed, before against after. A drop means Jev saw the defect the fix removed. Each class is reported separately, with its number of pairs.
-- Untouched prompts. Answers on the prompts the fix commit left alone, as weak negatives: the subagent passed them, but nobody showed they are clean. A before version should score above most of them.
+- Matched pairs, the headline. For each fixed prompt, compare the question's answer on the unit where the fix landed, before against after. A drop means Jev saw the defect the fix removed. Any drop counts, and each pair's before and after answers are reported, so the size of every drop is visible. Each class is reported separately, with its number of pairs.
+- Untouched prompts. Answers on the prompts the fix commit left alone, as weak negatives: the subagent passed them, but nobody showed they are clean. A before version should score above most of them. The comparison is made at the same shot position, because a later shot can leave out a place stated in an earlier one, so later shots are expected to score higher on `unplaced_person`.
 - Hard negatives, named in the key: a prompt whose chaos is its brief, and one the subagent named as a model of placement done right.
 - Flagged but not fixed. The subagent flagged a few prompts the fix commit did not change. Whether the owner declined those or deferred them is not recorded, so they are reported apart and not scored.
 - Calibration and cost, as in experiment 09.
