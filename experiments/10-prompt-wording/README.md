@@ -46,6 +46,8 @@ Placement is judged per shot, because that is how the fixes landed. The subagent
 
 Nouls, version `v1`, in `src/wordingQuestions.ts`. The examples in their criteria are made up, never taken from the bank, so the questions are not tuned on the key.
 
+The 2026-09-19 run turned this set into `v1`'s development set. A later version of a question, written with those results in view, is tested only on pairs it has not seen.
+
 ## Arms
 
 | Arm | Kind | Status |

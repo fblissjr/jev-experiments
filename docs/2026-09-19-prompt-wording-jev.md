@@ -6,9 +6,9 @@ A dated record of experiment 10's first Jev run. The protocol is in `experiments
 
 ## Setup
 
-- Version 0.9.1 of this repository. Model `jev-1.13.0`, the versioned id in every response.
+- The bodies were built at version 0.9.0 (`411e6e3`) and sent at 0.9.1 (`4d320cc`), as the ledger records them. Model `jev-1.13.0`, the versioned id in every response.
 - Source: the `prompt_bank/` folder of the owner's H3 prompt bank repo, at the wording-fix commit and its parent, read through `git show`. No other folder of that repo is readable by the command.
-- Every request was built into the egress ledger first, checked to be a verbatim slice of its file, and read and approved by the owner before the send. The send transmitted only approved bodies, and refused any that differed. All bodies were sent, none refused, no errors.
+- Every request was built into the egress ledger first, checked to be a verbatim slice of its file, and read and approved by the owner before the send. The send transmits only approved bodies and would refuse any that differed; none differed. All bodies were sent, none refused, no errors.
 - The answer key was derived from the fix commit before any answer existed: which shots each fix changed, and which defects its changed clause removed.
 - Three questions, one per class, as `v1` nouls. A shot's text is one request; a whole prompt's description is another.
 
@@ -60,6 +60,7 @@ Two of the flags the fix left alone land in Jev's top decile, which is the stron
 
 - The separation is real but not proven by the pair test. Defective units score well above the untouched median in two classes, and above the 88th percentile in 7 of 8 placement pairs. At this many pairs, the pair test cannot rule out chance for any class.
 - The untouched prompts are weak negatives. A Claude subagent passed them; nothing else did.
+- The eight defective placement units share a shape that most untouched shots do not: a speaker, someone addressed, and a silent third person. So their high ranks are partly the shape, not the defect. The fixed versions still sit well above the untouched median, and the sweep's counter-example sits higher still, which says `v1` answers "this shot has someone being addressed" more than "that person has no place".
 - Agreement with a wording fix is not a video outcome. Nothing here says a fixed prompt renders better.
 - The three mechanical classes were not asked of Jev, and their rule arm is not built yet, so this run says nothing about them.
 
@@ -69,6 +70,6 @@ Two of the flags the fix left alone land in Jev's top decile, which is the stron
 
 ## Next
 
-- A `v2` for the placement question, narrowed to the person spoken to or acted on. `v1` asks about any person in the shot, and it scores the sweep's own counter-example as high as most defective units, which is what a question that is too broad looks like.
+- A `v2` for the placement question, narrowed to the person spoken to or acted on. It would be written with these eight pairs and the counter-example in view, which makes them its development set: a `v2` counts as tested only on pairs it has not seen. `v1` asks about any person in the shot, and it scores the sweep's own counter-example as high as most defective units, which is what a question that is too broad looks like.
 - The rule arm for the mechanical classes, so the cheap half of this is measured too.
 - More pairs. Eight, two and four are too few to conclude anything, and the fix commit is the only source of pairs that exists today.
