@@ -37,8 +37,8 @@ const EXPERIMENT = '10-prompt-wording';
 const { values } = parseArgs({
   options: {
     'bank-repo': { type: 'string' },
-    before: { type: 'string', default: '4bd7b429^' },
-    after: { type: 'string', default: '4bd7b429' },
+    before: { type: 'string' },
+    after: { type: 'string' },
     'dry-run': { type: 'boolean', default: false },
     send: { type: 'string' },
     egress: { type: 'string' },
@@ -87,8 +87,8 @@ if (values['dry-run']) {
   // The only folder read. Not an option, on purpose.
   const dir = 'prompt_bank';
   const BANK_FILE = /^prompt_bank\/[^/]+\.txt$/;
-  const before = git('rev-parse', '--short', values.before!).trim();
-  const after = git('rev-parse', '--short', values.after!).trim();
+  const before = git('rev-parse', '--short', values.before ?? '4bd7b429^').trim();
+  const after = git('rev-parse', '--short', values.after ?? '4bd7b429').trim();
   const files = lines(git('ls-tree', '--name-only', before, `${dir}/`)).filter((path) => path.endsWith('.txt'));
   const changed = new Set(lines(git('diff', '--name-only', before, after, '--', dir)).filter((path) => path.endsWith('.txt')));
   for (const path of [...files, ...changed]) if (!BANK_FILE.test(path)) throw new Error(`refusing a path outside ${dir}/: ${path}`);
@@ -136,6 +136,8 @@ if (values['dry-run']) {
   console.log(`read it:    bun run payloads show latest   (or: bun run payloads html latest)`);
   console.log(`approve it: bun run payloads approve "${run_id}"`);
 } else {
+  // A send's bodies come only from the ledger; source options would do nothing, so they are refused.
+  for (const option of ['bank-repo', 'before', 'after'] as const) if (values[option] !== undefined) throw new Error(`--${option} is for a dry run; a send takes its bodies from the approved dry run`);
   if (values.egress !== 'bank') throw new Error('a send puts prompt bank text on the network: pass --egress bank');
   if (!apiKey) throw new Error('a send needs TYPESAFE_API_KEY (in .env at the repo root)');
   const from = values.send === 'latest' ? ledger.runs().filter((r) => r.kind === 'dry-run' && r.experiment === EXPERIMENT).at(-1)?.run_id : values.send;
