@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.1
+
+- Experiment 10's answer key (`experiments/10-prompt-wording/key.ts`, `bun run wording-key`), derived from the fix commit before any answer exists: which shots each fix changed, and which defects the changed clause removed. A change can carry more than one class; what the rules do not recognise is assigned by hand with its reason, and anything left is printed for review. The key names prompts of a private repo, so it is written under `internal/` and never committed.
+
 ## 0.9.0
 
 - An egress ledger (`src/ledger.ts`) in `data/egress.sqlite`, gitignored. A dry run stores every body exactly as it would be sent, with where its text came from. `bun run payloads` lists runs, shows a run's bodies in the terminal with filters, writes a self-contained local page to browse them (`src/payloadView.ts`), and records the owner's approval of a dry run. `EGRESS_LEDGER` points a test run at another file.
