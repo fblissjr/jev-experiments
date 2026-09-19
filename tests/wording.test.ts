@@ -34,6 +34,13 @@ describe('parsePrompt', () => {
     expect(parsed.shots[0]!.startsWith('Watercolor, soft paper grain. [Shot 1]')).toBe(true);
   });
 
+  test('every shot is a verbatim slice of the prompt, a preamble on its own line included', () => {
+    const text = 'detailed_description: Watercolor.\n[Shot 1] <Subject 1> waits.  Rain.\n[Shot 2] The shot cuts to the door.\noverall_soundscape: Rain.';
+    const parsed = parsePrompt(text)!;
+    expect(parsed.shots).toEqual(['Watercolor.\n[Shot 1] <Subject 1> waits.  Rain.', '[Shot 2] The shot cuts to the door.']);
+    for (const shot of [...parsePrompt(BASE)!.shots, ...parsePrompt(REF)!.shots, ...parsed.shots]) expect(BASE.includes(shot) || REF.includes(shot) || text.includes(shot)).toBe(true);
+  });
+
   test('a main field with no shot headers is one shot', () => {
     expect(parsePrompt('integrated_multimodal_description: A still pond.\n\noverall_soundscape: Frogs.')!.shots).toEqual(['A still pond.']);
   });

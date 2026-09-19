@@ -4,7 +4,6 @@
 //   bun run wording --bank-repo <dir> --dry-run
 //
 //   --bank-repo DIR     the prompt bank repo (read with git show; never modified)
-//   --bank-dir NAME     the bank's folder in that repo (default prompt_bank)
 //   --before REV        the defective versions (default 4bd7b429^)
 //   --after REV         the fixed versions (default 4bd7b429)
 //   --dry-run           build and check every request, write examples, send nothing
@@ -12,7 +11,13 @@
 //   --limit N           send only the first N requests (a smoke run)
 //   --out DIR           default runs/10-prompt-wording/<time>/
 //
-// Writes units.jsonl (keys and character counts, no text). A dry run also
+// Reads only `prompt_bank/*.txt` in that repo, at the two commits. There is no
+// option to read anything else, and a path outside that folder stops the run:
+// the owner's rule is that no prompt from any other folder, such as
+// internal/internal_prompt_bank, is ever used here.
+//
+// Writes units.jsonl (keys and character counts, no text) and sources.jsonl
+// (the commit, path and blob of every text read). A dry run also
 // writes dry-run.jsonl (hash, bytes, refusal per request), questions.json and
 // examples/ (complete request bodies, bank text included; runs/ is gitignored).
 // A send writes answers.jsonl and sent.jsonl (hash, bytes, status, model, time
@@ -28,7 +33,6 @@ import { DESCRIPTION_QUESTIONS, QUESTION_VERSION, SHOT_QUESTIONS, questionsFor, 
 const { values } = parseArgs({
   options: {
     'bank-repo': { type: 'string' },
-    'bank-dir': { type: 'string', default: 'prompt_bank' },
     before: { type: 'string', default: '4bd7b429^' },
     after: { type: 'string', default: '4bd7b429' },
     'dry-run': { type: 'boolean', default: false },
@@ -42,7 +46,9 @@ if (!repo) {
   console.error('usage: bun run wording --bank-repo <dir> [--dry-run | --egress bank] [--before REV] [--after REV] [--out DIR]');
   process.exit(2);
 }
-const dir = values['bank-dir']!;
+// The only folder read. Not an option, on purpose.
+const dir = 'prompt_bank';
+const BANK_FILE = /^prompt_bank\/[^/]+\.txt$/;
 
 function git(...args: string[]): string {
   const run = Bun.spawnSync(['git', '-C', repo!, ...args], { stdout: 'pipe', stderr: 'pipe' });
@@ -56,15 +62,26 @@ const before = git('rev-parse', '--short', values.before!).trim();
 const after = git('rev-parse', '--short', values.after!).trim();
 const files = lines(git('ls-tree', '--name-only', before, `${dir}/`)).filter((path) => path.endsWith('.txt'));
 const changed = new Set(lines(git('diff', '--name-only', before, after, '--', dir)).filter((path) => path.endsWith('.txt')));
+for (const path of [...files, ...changed]) if (!BANK_FILE.test(path)) throw new Error(`refusing a path outside ${dir}/: ${path}`);
 
 const units: WordingUnit[] = [];
 const unparsed: string[] = [];
+const sources: { prompt_id: string; version: string; commit: string; path: string; blob: string }[] = [];
+// One version of one bank file: its units, each state checked to be a verbatim
+// slice of the file, and its source recorded.
+function read(path: string, version: string, commit: string): WordingUnit[] {
+  const text = git('show', `${commit}:${path}`);
+  const found = unitsFor(stem(path), version, text);
+  for (const unit of found) {
+    const sent = Object.values(unit.state)[0] as string;
+    if (!text.includes(sent)) throw new Error(`a state is not a verbatim slice of ${path} at ${commit}`);
+  }
+  sources.push({ prompt_id: stem(path), version, commit, path, blob: git('rev-parse', `${commit}:${path}`).trim() });
+  return found;
+}
 for (const path of files) {
-  const id = stem(path);
-  const found = changed.has(path)
-    ? [...unitsFor(id, 'before', git('show', `${before}:${path}`)), ...unitsFor(id, 'after', git('show', `${after}:${path}`))]
-    : unitsFor(id, 'same', git('show', `${before}:${path}`));
-  if (found.length === 0) unparsed.push(id);
+  const found = changed.has(path) ? [...read(path, 'before', before), ...read(path, 'after', after)] : read(path, 'same', before);
+  if (found.length === 0) unparsed.push(stem(path));
   units.push(...found);
 }
 
@@ -73,6 +90,7 @@ const out = values.out ?? `runs/10-prompt-wording/${now.replace(/[:.]/g, '-')}`;
 mkdirSync(out, { recursive: true });
 const jsonl = (items: unknown[]) => items.map((item) => JSON.stringify(item)).join('\n') + (items.length ? '\n' : '');
 const unitKey = (unit: WordingUnit) => `${unit.prompt_id}@${unit.version}#${unit.shot ?? 'description'}`;
+writeFileSync(`${out}/sources.jsonl`, jsonl(sources));
 writeFileSync(
   `${out}/units.jsonl`,
   jsonl(units.map((unit) => ({ key: unitKey(unit), prompt_id: unit.prompt_id, version: unit.version, kind: unit.kind, shot: unit.shot, chars: JSON.stringify(unit.state).length }))),
@@ -91,7 +109,8 @@ const guard = (unit: WordingUnit): string | undefined => {
 };
 
 const count = (kind: string, version?: string) => units.filter((unit) => unit.kind === kind && (version === undefined || unit.version === version)).length;
-console.log(`source: ${dir}/ at ${before} (before) and ${after} (after): ${files.length} prompts, ${changed.size} changed by the fix, ${unparsed.length} with no main field`);
+console.log(`source: ${dir}/ only, at ${before} (before) and ${after} (after): ${files.length} prompts, ${changed.size} changed by the fix, ${unparsed.length} with no main field`);
+console.log(`files read: ${sources.length}, all under ${dir}/: ${sources.every((s) => BANK_FILE.test(s.path))}; every state a verbatim slice of its file`);
 console.log(`units: shot ${count('shot')}, description ${count('description')}; versions: same ${new Set(units.filter((u) => u.version === 'same').map((u) => u.prompt_id)).size}, before ${new Set(units.filter((u) => u.version === 'before').map((u) => u.prompt_id)).size}, after ${new Set(units.filter((u) => u.version === 'after').map((u) => u.prompt_id)).size}`);
 
 if (values['dry-run']) {

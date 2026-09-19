@@ -11,10 +11,11 @@ Status: protocol, parser, questions and a dry run of the Jev requests. Nothing h
 - Jev is tried as a checker, not a generator. TypeSafe lists text generation as a known failure mode of `jev-1.13`.
 - Sending bank prompt text to TypeSafe is allowed in principle. The owner reads the dry run's inventory and examples before the first send.
 - The fix commit and the owner's approval of each fix are the answer key. Renders come later.
+- Prompts come only from the bank's `prompt_bank/` folder, never from any other folder of that repo, such as `internal/internal_prompt_bank`.
 
 ## Source
 
-The prompt bank of the owner's H3 prompt bank repo, read with `git show` at two commits: the parent of the fix commit (`4bd7b429^`, the defective versions) and the fix commit (`4bd7b429`, the fixed ones). Bank text, clause text and the answer key are never committed here. That repo is private, and the key names its prompts, so the key will be kept under `internal/`.
+The `prompt_bank/*.txt` files of the owner's H3 prompt bank repo, and nothing else in it, read with `git show` at two commits: the parent of the fix commit (`4bd7b429^`, the defective versions) and the fix commit (`4bd7b429`, the fixed ones). The folder is fixed in code, not an option. A path outside it stops the run, every state is checked to be a verbatim slice of its file, and `sources.jsonl` records the commit, path and blob of every file read. Bank text, clause text and the answer key are never committed here. That repo is private, and the key names its prompts, so the key will be kept under `internal/`.
 
 ## Classes
 

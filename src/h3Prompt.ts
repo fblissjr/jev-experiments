@@ -25,8 +25,11 @@ export function parsePrompt(text: string): ParsedPrompt | undefined {
   const end = text.indexOf(NEXT_FIELD, start);
   const description = text.slice(start, end < 0 ? undefined : end).trim();
 
-  const parts = description.split(/(?=\[Shot \d+\])/).map((part) => part.trim()).filter((part) => part !== '');
-  // A preamble (ref2va's style sentence) is not a shot; it opens shot 1.
-  if (parts.length > 1 && !parts[0]!.startsWith('[Shot ')) parts.splice(0, 2, `${parts[0]} ${parts[1]}`);
-  return { kind, description, shots: parts };
+  // Each shot is a slice of the description, verbatim apart from its outer
+  // whitespace. A preamble (ref2va's style sentence) is not a shot: the first
+  // slice starts at the top, so it opens shot 1.
+  const headers = [...description.matchAll(/\[Shot \d+\]/g)].map((match) => match.index);
+  const starts = [0, ...headers.slice(1)];
+  const shots = starts.map((start, i) => description.slice(start, starts[i + 1] ?? description.length).trim()).filter((shot) => shot !== '');
+  return { kind, description, shots };
 }

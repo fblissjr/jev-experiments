@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.1
+
+- Experiment 10 reads only the bank's `prompt_bank/` folder, by the owner's rule. The folder is fixed in code rather than an option, a path outside it stops the run, and `sources.jsonl` records the commit, path and blob of every file read.
+- Each shot is now a verbatim slice of its file. The parser used to join a preamble on its own line to shot 1 with a space, and the command now stops if any state is not found verbatim in its file.
+
 ## 0.8.0
 
 - Experiment 10, wording defects in H3 video prompts: the protocol (`experiments/10-prompt-wording/README.md`), a prompt parser (`src/h3Prompt.ts`), three `v1` Noul questions (`src/wordingQuestions.ts`), and a `wording` command. The command reads the prompt bank through `git show` at the fix commit and its parent. Its `--dry-run` prints what would be sent and writes complete example requests. Sending needs `--egress bank`, which waits on the owner reading a dry run. Nothing has been sent.
