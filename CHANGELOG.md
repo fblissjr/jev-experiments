@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.0
+
+- Experiment 10, wording defects in H3 video prompts: the protocol (`experiments/10-prompt-wording/README.md`), a prompt parser (`src/h3Prompt.ts`), three `v1` Noul questions (`src/wordingQuestions.ts`), and a `wording` command. The command reads the prompt bank through `git show` at the fix commit and its parent. Its `--dry-run` prints what would be sent and writes complete example requests. Sending needs `--egress bank`, which waits on the owner reading a dry run. Nothing has been sent.
+- Experiment 11, structured generation of H3 prompts on an engine branch: the owner's decisions and a draft protocol. No code.
+- The backlog adds rows 10 and 11.
+
 ## 0.7.1
 
 - The Jev synthetic results doc adds freudagent's independent check, which reproduced every figure, and a frustration breakdown. Jev pulls toward the middle level and never picks the top one. About half of its misses on calm replies are arguable polite corrections, the rest plain misses. Frustration needs sharper level wording before it is used.

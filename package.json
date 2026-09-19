@@ -1,6 +1,6 @@
 {
   "name": "typesafe-experiments",
-  "version": "0.7.1",
+  "version": "0.8.0",
   "type": "module",
   "private": true,
   "scripts": {
@@ -8,7 +8,8 @@
     "check:hooks": "tsc --noEmit -p tsconfig.hooks.json",
     "replay": "bun experiments/01-compaction-replay/replay.ts",
     "label": "bun experiments/09-exchange-labels/label.ts",
-    "eval-labels": "bun experiments/09-exchange-labels/eval.ts"
+    "eval-labels": "bun experiments/09-exchange-labels/eval.ts",
+    "wording": "bun experiments/10-prompt-wording/wording.ts"
   },
   "devDependencies": {
     "@types/bun": "1.4.2"

@@ -1,4 +1,4 @@
-last updated: 2026-09-18
+last updated: 2026-09-19
 
 # typesafe-experiments
 
@@ -18,6 +18,8 @@ Experiment 09 also needs these, which `bun install` does not provide:
 - [ccutils](https://github.com/fblissjr/ccutils), which builds a DuckDB warehouse from Claude Code session logs. The results so far used ccutils commit `76533fc`.
 
 Experiment 09's synthetic sessions and answer key come from [freudagent](https://github.com/fblissjr/freudagent), under `data/synthetic/`.
+
+Experiment 10 reads the owner's H3 prompt bank repo, which is private, through `git show`. Pass its checkout with `--bank-repo`.
 
 ### Claude Code
 
@@ -56,7 +58,7 @@ A Claude Code hooks module is TypeScript, and it runs in an environment with no 
 docs/            dated records: landscape surveys, experiment results
 experiments/     one folder per experiment, plus the protocol
 src/compact/     hook-safe decision code: tool calls, protection rules, decisions, the Jev scorer
-src/             harness code: session-log reader, compaction points, metrics, scorers for the arms, exchange units, labels and label scoring
+src/             harness code: session-log reader, compaction points, metrics, scorers for the arms, exchange units, labels and label scoring, H3 prompt parsing and wording questions
 tests/           unit tests
 .claude/types/   function-hook declarations written by /plugin-types (local, gitignored)
 internal/        unshared notes and session logs (gitignored)
