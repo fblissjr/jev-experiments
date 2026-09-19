@@ -56,13 +56,29 @@ The sweep that produced the fixes also named prompts it flagged and the owner di
 
 Two of the flags the fix left alone land in Jev's top decile, which is the strongest evidence here that it sees something real. The prompt the sweep called correct lands there too, at 0.74, above four of the eight defective units. Both readings come from the same question, which is the case for rewording it rather than keeping it.
 
+## The rule arm
+
+The other three classes need no model. Each rule reads a prompt's shots and fires on a defect. They were run over the same fix commit, and then over every prompt it did not touch.
+
+| Rule | Repaired prompts where it fires before the fix and falls silent after | Still fires after the fix | Untouched prompts it fires on |
+|---|---|---|---|
+| a line of dialogue whose sentence names no speaker | 2 of 4 | 2 | 22 of 113 (19%), 35 findings |
+| a character marked silent who speaks later | 10 of 11 | 1 | 3 of 113 |
+| a voice register the prompt's own words contradict | 4 of 4 | 0 | 1 of 113 |
+
+The three that still fire after their fix are worth a look rather than a verdict: one is a sung line inside a lyrics pair, one is a line attributed by a subject label rather than a speaker id, and one is a character the rule reads as marked silent and then speaking, which the fix did not touch.
+
+The 19% on the dialogue rule is not noise in the usual sense. Most of those findings are a second or third line in a shot, where the first line carried the id and the later ones do not. Whether that is a defect depends on whether an id is required at every vocal event, which is what the bank's own documentation says. If it is, these are findings nobody has looked at. If it is not, the rule needs narrowing to a character's first line in a shot.
+
+The register rule was adjusted twice against these four pairs: first it read the other character's pronouns in a two-hander, then it could not follow a character named only in a later shot. So its 4 of 4 is a development result, not a test.
+
 ## What the numbers do and do not say
 
 - The separation is real but not proven by the pair test. Defective units score well above the untouched median in two classes, and above the 88th percentile in 7 of 8 placement pairs. At this many pairs, the pair test cannot rule out chance for any class.
 - The untouched prompts are weak negatives. A Claude subagent passed them; nothing else did.
 - The eight defective placement units share a shape that most untouched shots do not: a speaker, someone addressed, and a silent third person. So their high ranks are partly the shape, not the defect. The fixed versions still sit well above the untouched median, and the sweep's counter-example sits higher still, which says `v1` answers "this shot has someone being addressed" more than "that person has no place".
 - Agreement with a wording fix is not a video outcome. Nothing here says a fixed prompt renders better.
-- The three mechanical classes were not asked of Jev, and their rule arm is not built yet, so this run says nothing about them.
+- The three mechanical classes were not asked of Jev. The rule arm above covers them, and nothing here compares the two on the same class.
 
 ## Cost
 
@@ -71,5 +87,5 @@ Two of the flags the fix left alone land in Jev's top decile, which is the stron
 ## Next
 
 - A `v2` for the placement question, narrowed to the person spoken to or acted on. It would be written with these eight pairs and the counter-example in view, which makes them its development set: a `v2` counts as tested only on pairs it has not seen. `v1` asks about any person in the shot, and it scores the sweep's own counter-example as high as most defective units, which is what a question that is too broad looks like.
-- The rule arm for the mechanical classes, so the cheap half of this is measured too.
+- The owner's eye on the rule sweep: 39 findings across 26 prompts the fix commit never touched, listed in the run output.
 - More pairs. Eight, two and four are too few to conclude anything, and the fix commit is the only source of pairs that exists today.

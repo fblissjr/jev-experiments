@@ -4,7 +4,7 @@ last updated: 2026-09-19
 
 MiniMax H3 prompts are checked for format in code: section order, markers, speaker-id syntax, label wiring. A class of defect gets past those checks and shows up in the render: a person who speaks or is spoken to with no stated place in the shot, an object that acts with nobody doing it, a count the scene contradicts. On 2026-09-18 the owner's render panel exposed the pattern, a Claude subagent swept the prompt bank for it, and the owner approved one-clause fixes. Every fixed prompt passed the format grader both before and after the fix. This experiment asks whether Jev can see these defects.
 
-Status: run. The owner approved the dry run and all of it was sent on 2026-09-19; results in `docs/2026-09-19-prompt-wording-jev.md`. The placement question died against its kill condition and needs a `v2`; the count question is noise, as expected. The rule arm for the mechanical classes is still to build.
+Status: run. The owner approved the dry run and all of it was sent on 2026-09-19; results in `docs/2026-09-19-prompt-wording-jev.md`. The placement question died against its kill condition and needs a `v2`; the count question is noise, as expected. The rule arm is built and run: it catches most of the mechanical defects the fix commit repaired, and it found more in prompts nobody flagged.
 
 ## Owner decisions, 2026-09-19
 
@@ -53,7 +53,7 @@ The 2026-09-19 run turned this set into `v1`'s development set. A later version 
 | Arm | Kind | Status |
 |---|---|---|
 | format grader | rule | known result: every fixed prompt passed it before and after, so it cannot separate a pair |
-| rules for the mechanical classes | rule | not built |
+| rules for the mechanical classes | rule | built, `src/wordingRules.ts`, run 2026-09-19 |
 | constant and seeded-random asker | fake | computed in scoring: a coin's odds of doing as well, and a constant answer drops none |
 | Jev | model | `v1` run on 2026-09-19 |
 | Gemini Flash | model | planned; needs its own key and egress review |

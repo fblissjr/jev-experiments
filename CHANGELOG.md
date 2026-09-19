@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.0
+
+- The rule arm for experiment 10's mechanical classes (`src/wordingRules.ts`, `bun run wording-rules`): a line of dialogue whose sentence names no speaker, a character marked silent who speaks later, and a voice register the prompt's own words contradict. It reports both the prompts the fix commit repaired and a sweep of those it never touched, where it found more of all three. Results added to `docs/2026-09-19-prompt-wording-jev.md`. No model and no network.
+
 ## 0.10.0
 
 - Experiment 10 ran. The owner approved the dry run, every body was sent, and the answers are scored against the key (`experiments/10-prompt-wording/eval.ts`, `bun run wording-eval`): matched pairs per class, the odds a coin does as well, and where each defective unit sits among untouched units at the same shot position. Results in `docs/2026-09-19-prompt-wording-jev.md`: the placement question dies against its own kill condition, agentless action survives on two pairs, and the count question is noise.
