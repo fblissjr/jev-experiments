@@ -23,17 +23,24 @@ describe('headNoun', () => {
 });
 
 describe('unattributedDialogue', () => {
-  test('fires on a line whose sentence names no speaker', () => {
-    expect(unattributedDialogue([UNATTRIBUTED]).map((f) => f.shot)).toEqual([1]);
-  });
-
-  test('stays quiet when the sentence carries an id, including a compound one', () => {
+  // The owner's rule: a line needs an id only when it is genuinely unclear who
+  // speaks. A pronoun is clear enough in a two-hander.
+  test('stays quiet when the sentence names the speaker, by id, pronoun or role', () => {
     expect(unattributedDialogue([ATTRIBUTED])).toEqual([]);
+    expect(unattributedDialogue([UNATTRIBUTED])).toEqual([]);
+    expect(unattributedDialogue(['[Shot 1] A fisher (S1) coils rope. She says at once: <d>[English] Done.</d>'])).toEqual([]);
+    expect(unattributedDialogue(['[Shot 1] A fisher with a low voice (S1) coils rope. [Shot 2] The fisher calls out: <d>[English] Done.</d>'])).toEqual([]);
     expect(unattributedDialogue(['[Shot 1] Two dockers (S1,S2) chant together: <d>[English] Heave.</d>'])).toEqual([]);
   });
 
-  test('a speaker id elsewhere in the shot does not cover a line', () => {
-    expect(unattributedDialogue(['[Shot 1] A fisher (S1) coils rope. The deckhand says: <d>[English] Done.</d>'])).toHaveLength(1);
+  test('fires when nothing before the line says who is speaking', () => {
+    const shots = ['[Shot 1] A fisher with a low voice (S1) coils rope. As the winch reaches the top of its travel, a voice carries over the water: <d>[English] Done.</d>'];
+    expect(unattributedDialogue(shots)).toHaveLength(1);
+  });
+
+  test('a name that appears only after the line does not attribute it', () => {
+    const shots = ['[Shot 1] A fisher with a low voice (S1) coils rope. The rope goes taut: <d>[English] Done.</d> The fisher looks up.'];
+    expect(unattributedDialogue(shots)).toHaveLength(1);
   });
 });
 
@@ -72,5 +79,6 @@ describe('registerMismatch', () => {
 });
 
 test('findings collects every rule', () => {
-  expect(new Set(findings([UNATTRIBUTED]).map((f) => f.rule))).toEqual(new Set(['unattributed_dialogue']));
+  const shots = ['[Shot 1] A fisher (S1) coils rope. The rope goes taut: <d>[English] Done.</d>'];
+  expect(new Set(findings(shots).map((f) => f.rule))).toEqual(new Set(['unattributed_dialogue']));
 });

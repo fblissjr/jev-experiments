@@ -12,6 +12,7 @@ Status: run. The owner approved the dry run and all of it was sent on 2026-09-19
 - Sending bank prompt text to TypeSafe is allowed in principle. The owner reads the dry run's inventory and examples before the first send.
 - The fix commit and the owner's approval of each fix are the answer key. Renders come later.
 - Prompts come only from the bank's `prompt_bank/` folder, never from any other folder of that repo, such as `internal/internal_prompt_bank`.
+- A line of dialogue needs a speaker id only where it is genuinely unclear who is speaking. A pronoun is clear enough in a scene with one man and one woman.
 
 ## Source
 
@@ -20,7 +21,7 @@ The `prompt_bank/*.txt` files of the owner's H3 prompt bank repo, and nothing el
 ## Classes
 
 Mechanical, left to rules (no Jev):
-- a line of dialogue with no speaker id
+- a line of dialogue that says nothing about who is speaking
 - a character marked as silent who then speaks
 - a woman's voice given a male register ("baritone" with she or her)
 

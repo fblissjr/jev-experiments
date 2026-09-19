@@ -62,13 +62,13 @@ The other three classes need no model. Each rule reads a prompt's shots and fire
 
 | Rule | Repaired prompts where it fires before the fix and falls silent after | Still fires after the fix | Untouched prompts it fires on |
 |---|---|---|---|
-| a line of dialogue whose sentence names no speaker | 2 of 4 | 2 | 22 of 113 (19%), 35 findings |
+| a line of dialogue that says nothing about who speaks | 0 of 4 | 0 | 1 of 113 |
 | a character marked silent who speaks later | 10 of 11 | 1 | 3 of 113 |
 | a voice register the prompt's own words contradict | 4 of 4 | 0 | 1 of 113 |
 
-The three that still fire after their fix are worth a look rather than a verdict: one is a sung line inside a lyrics pair, one is a line attributed by a subject label rather than a speaker id, and one is a character the rule reads as marked silent and then speaking, which the fix did not touch.
+The dialogue rule started stricter, firing on any line whose sentence carried no speaker id. That found 35 lines across 22 untouched prompts, and the owner ruled on 2026-09-19 that an id is wanted only where it is genuinely unclear who speaks: "she says" is clear in a scene with one man and one woman. Narrowed to that rule, it fires on one line in the whole bank, where a `<d>` block quotes a reused audio track rather than a character. It also stops matching the fix commit's own id edits, which were stricter than the rule the owner stated.
 
-The 19% on the dialogue rule is not noise in the usual sense. Most of those findings are a second or third line in a shot, where the first line carried the id and the later ones do not. Whether that is a defect depends on whether an id is required at every vocal event, which is what the bank's own documentation says. If it is, these are findings nobody has looked at. If it is not, the rule needs narrowing to a character's first line in a shot.
+The silent-character rule still fires after one fix, on a character the fix did not touch.
 
 The register rule was adjusted twice against these four pairs: first it read the other character's pronouns in a two-hander, then it could not follow a character named only in a later shot. So its 4 of 4 is a development result, not a test.
 
@@ -87,5 +87,5 @@ The register rule was adjusted twice against these four pairs: first it read the
 ## Next
 
 - A `v2` for the placement question, narrowed to the person spoken to or acted on. It would be written with these eight pairs and the counter-example in view, which makes them its development set: a `v2` counts as tested only on pairs it has not seen. `v1` asks about any person in the shot, and it scores the sweep's own counter-example as high as most defective units, which is what a question that is too broad looks like.
-- The owner's eye on the rule sweep: 39 findings across 26 prompts the fix commit never touched, listed in the run output.
+- The owner's eye on the rule sweep: five findings in five prompts the fix commit never touched, three of them a character marked silent who then speaks.
 - More pairs. Eight, two and four are too few to conclude anything, and the fix commit is the only source of pairs that exists today.

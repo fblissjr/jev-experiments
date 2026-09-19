@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.1
+
+- The dialogue rule follows the owner's ruling: a line needs a speaker id only where it is genuinely unclear who speaks, so a pronoun, a subject label, a name the prompt already gave a speaker, or the sentence's own subject all count. Across the bank it goes from 35 findings in 22 prompts to one, where a `<d>` block quotes a reused audio track rather than a character.
+
 ## 0.11.0
 
 - The rule arm for experiment 10's mechanical classes (`src/wordingRules.ts`, `bun run wording-rules`): a line of dialogue whose sentence names no speaker, a character marked silent who speaks later, and a voice register the prompt's own words contradict. It reports both the prompts the fix commit repaired and a sweep of those it never touched, where it found more of all three. Results added to `docs/2026-09-19-prompt-wording-jev.md`. No model and no network.

@@ -48,14 +48,61 @@ export function headNoun(sentence: string): string | undefined {
   return phrase?.split(/\s+/).pop()?.toLowerCase();
 }
 
-/** A line of dialogue in a sentence that names no speaker. */
+const PRONOUN = /\b(he|him|his|himself|she|her|hers|herself|they|them|their|theirs)\b/i;
+/** Words an identity phrase or a camera move leaves behind that name no one. */
+const NOT_A_CHARACTER = /^(voice|tone|cadence|accent|delivery|timbre|pitch|rasp|whisper|drawl|lilt|register|camera|shot|frame|lens|microphone|line|phrase|sound|music|note|rope|belt|drawer)$/i;
+const SUBJECT_LABEL = /<Subject \d+>/;
+
+/**
+ * The names this prompt uses for characters who speak: the head noun of every
+ * sentence that carries a speaker id, and every noun in it that a later line
+ * could refer back to.
+ */
+export function speakerNames(shots: readonly string[]): Set<string> {
+  const names = new Set<string>();
+  for (const shot of shots) {
+    for (const sentence of sentencesOf(shot)) {
+      if (!SPEAKER_ID.test(sentence.text)) continue;
+      const head = headNoun(sentence.text);
+      if (head && !NOT_A_CHARACTER.test(head)) names.add(head);
+      // "the lead singer with a raw tenor (S1)" also answers to "the singer".
+      for (const match of sentence.text.matchAll(/\b(?:the|a|an)\s+([\w-]+(?:\s+[\w-]+){0,3}?)\s*(?=\(S|with|in|at|,)/gi)) {
+        const noun = match[1]?.split(/\s+/).pop()?.toLowerCase();
+        if (noun && !NOT_A_CHARACTER.test(noun)) names.add(noun);
+      }
+    }
+  }
+  return names;
+}
+
+/**
+ * A line of dialogue whose sentence says nothing about who is speaking.
+ *
+ * The owner's rule, 2026-09-19: a speaker id is wanted when it is genuinely
+ * unclear who speaks, not on every line. "She says" is clear enough in a scene
+ * with one man and one woman. So a line counts only when its sentence carries
+ * no speaker id, no pronoun, no subject label, and no name this prompt has
+ * already used for someone who speaks.
+ */
 export function unattributedDialogue(shots: readonly string[]): Finding[] {
   const findings: Finding[] = [];
+  const names = speakerNames(shots);
   shots.forEach((shot, i) => {
     for (const sentence of sentencesOf(shot)) {
-      if (sentence.dialogue.length > 0 && !SPEAKER_ID.test(sentence.text)) {
-        findings.push({ rule: 'unattributed_dialogue', shot: i + 1, evidence: sentence.text.replace(/\u0000(\d+)\u0000/g, '<d>…</d>').trim() });
-      }
+      if (sentence.dialogue.length === 0) continue;
+      // Only what comes before the line can say who is about to speak.
+      const before = sentence.text.slice(0, sentence.text.indexOf('\u0000'));
+      // Who the line belongs to can be said by an id, a pronoun, a subject
+      // label, a name this prompt already gave a speaker, or the plain subject
+      // of the sentence itself.
+      const subject = headNoun(before);
+      const named =
+        SPEAKER_ID.test(sentence.text) ||
+        PRONOUN.test(before) ||
+        SUBJECT_LABEL.test(before) ||
+        (subject !== undefined && !NOT_A_CHARACTER.test(subject)) ||
+        [...names].some((name) => new RegExp(`\\b${name}\\b`, 'i').test(before));
+      if (!named) findings.push({ rule: 'unattributed_dialogue', shot: i + 1, evidence: sentence.text.replace(/\u0000(\d+)\u0000/g, '<d>…</d>').trim() });
     }
   });
   return findings;
