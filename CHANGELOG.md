@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.0
+
+- Experiment 10 ran. The owner approved the dry run, every body was sent, and the answers are scored against the key (`experiments/10-prompt-wording/eval.ts`, `bun run wording-eval`): matched pairs per class, the odds a coin does as well, and where each defective unit sits among untouched units at the same shot position. Results in `docs/2026-09-19-prompt-wording-jev.md`: the placement question dies against its own kill condition, agentless action survives on two pairs, and the count question is noise.
+
 ## 0.9.1
 
 - Experiment 10's answer key (`experiments/10-prompt-wording/key.ts`, `bun run wording-key`), derived from the fix commit before any answer exists: which shots each fix changed, and which defects the changed clause removed. A change can carry more than one class; what the rules do not recognise is assigned by hand with its reason, and anything left is printed for review. The key names prompts of a private repo, so it is written under `internal/` and never committed.

@@ -1,6 +1,6 @@
 {
   "name": "typesafe-experiments",
-  "version": "0.9.1",
+  "version": "0.10.0",
   "type": "module",
   "private": true,
   "scripts": {
@@ -11,7 +11,8 @@
     "eval-labels": "bun experiments/09-exchange-labels/eval.ts",
     "wording": "bun experiments/10-prompt-wording/wording.ts",
     "payloads": "bun experiments/payloads.ts",
-    "wording-key": "bun experiments/10-prompt-wording/key.ts"
+    "wording-key": "bun experiments/10-prompt-wording/key.ts",
+    "wording-eval": "bun experiments/10-prompt-wording/eval.ts"
   },
   "devDependencies": {
     "@types/bun": "1.4.2"
