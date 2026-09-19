@@ -11,7 +11,7 @@ Status: draft protocol. No code. It starts once experiment 10's checker exists, 
 - The plan is hierarchical and relational, parent to child: scene, subjects, their attributes, actions, shots. A model fills it, whether Jev or another.
 - The branch may change anything that helps: the schema, the contract, the serializer. It is experimental.
 - It is built with the engine repo's own session.
-- Shot headers carry no timestamps. The engine's main branch made that change in `c2e02a2` and `224b67c`, and the experiment branch starts from there. Per the owner's rulings in the engine session, the FL2VA and L2VA alignment lines keep their seconds, a time inside a shot is written only when a request asks for one, and `shots[].cutAtMs` stays as the plan's pacing without being rendered.
+- Shot headers carry no timestamps. The engine's main branch made that change in `c2e02a2` and `224b67c`, and the experiment branch starts from `224b67c`, not the first of the two: the first asks the planner for a capitalised cut phrase while the schema still matched it exactly and in lower case, so a model that wrote what it was told would have been rejected. Both of the engine's remotes are at `224b67c`. Per the owner's rulings in the engine session, the FL2VA and L2VA alignment lines keep their seconds, a time inside a shot is written only when a request asks for one, and `shots[].cutAtMs` stays as the plan's pacing without being rendered.
 
 ## Where Jev fits
 
@@ -48,6 +48,7 @@ A and B are the controls and need no Jev. B is there to separate the effect of t
 
 - Inputs. The prompt bank's briefs describe which format features a prompt exercises, not scene ideas, so they cannot be the inputs as they stand. The owner writes or picks the ideas.
 - Coherence. Filling one field at a time loses the whole-scene view a single call has, and most of experiment 10's defects cross shots. The likely order is to block out the whole scene first, then write each leaf with that blocking in view.
+- The engine's new planner prompt is unvalidated against a local model. Its suite is green and the ComfyUI grader passes its output, but both check grammar only, and the prompt gained a rewritten shots-and-beats block and a mid-shot-time instruction that no model has been driven with. That has to run before arm A is treated as a fair control, and it needs the local model server idle.
 - Kill condition, to be set with the owner before code: roughly, C neither has fewer defects than A nor wins the blind choice, or C does no better than B.
 
 ## Egress
