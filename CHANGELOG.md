@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.0
+
+- An egress ledger (`src/ledger.ts`) in `data/egress.sqlite`, gitignored. A dry run stores every body exactly as it would be sent, with where its text came from. `bun run payloads` lists runs, shows a run's bodies in the terminal with filters, writes a self-contained local page to browse them (`src/payloadView.ts`), and records the owner's approval of a dry run. `EGRESS_LEDGER` points a test run at another file.
+- Experiment 10 builds its bodies into the ledger. A send reads only an approved dry run, refuses a body that is not byte for byte what was approved, records each response beside its body, and skips what an earlier send from the same run already sent, so a smoke run can come first. The runs/ examples and dry-run files are gone; the ledger replaces them.
+- CLAUDE.md: anything sent to an outside service goes through the ledger.
+
 ## 0.8.1
 
 - Experiment 10 reads only the bank's `prompt_bank/` folder, by the owner's rule. The folder is fixed in code rather than an option, a path outside it stops the run, and `sources.jsonl` records the commit, path and blob of every file read.

@@ -72,13 +72,23 @@ For `unplaced_person` or `agentless_action`: the answer fails to drop on more th
 
 ## Egress
 
-The rules and fake askers run locally. The Jev arm sends each unit's state and the question text to TypeSafe. A state holds exactly one field: one shot's text, or one prompt's main field. It carries no prompt id, file name, brief, soundscape, music, path or key. The SDK adds its own headers: the key as a bearer token, its version, and the runtime with its platform and architecture. The script refuses to send without `--egress bank` and a key. Every state passes `src/egress.ts` first. `sent.jsonl` records each request's hash, size, status, model and time, never the body. `--dry-run` builds and checks every request, prints the inventory and writes a few complete example bodies to `runs/` for the owner to read. It sends nothing.
+The rules and fake askers run locally. The Jev arm sends each unit's state and the question text to TypeSafe. A state holds exactly one field: one shot's text, or one prompt's main field. It carries no prompt id, file name, brief, soundscape, music, path or key. The SDK adds its own headers: the key as a bearer token, its version, and the runtime with its platform and architecture.
+
+Nothing is sent without a reviewed dry run. The dry run writes every body, exactly as it would be sent, into the egress ledger (`src/ledger.ts`, `data/egress.sqlite`, gitignored), with the commit, path and blob of its text. Every state passes `src/egress.ts` first. The owner reads the run with `bun run payloads` and approves it. A send takes only that run's bodies. It refuses one that is not byte for byte what was approved, or that trips the guard now. It records each response beside its body. It also needs `--egress bank` and a key.
 
 ## Running
 
 ```sh
-# inventory of what would be sent, and example requests; sends nothing
-bun run wording --bank-repo <dir> --dry-run
+# build every body into the ledger; sends nothing
+bun run wording --dry-run --bank-repo <dir>
+
+# read what would be sent, in the terminal or as a local page
+bun run payloads show latest --where version=before --limit 5
+bun run payloads html latest
+
+# the owner's approval, then the send (--limit N for a smoke run; a later send skips what was sent)
+bun run payloads approve <run>
+bun run wording --send <run> --egress bank --limit 20
 ```
 
-Output goes to `runs/10-prompt-wording/`.
+A send's answers, one row per question, go to `runs/10-prompt-wording/<time>/answers.jsonl`.

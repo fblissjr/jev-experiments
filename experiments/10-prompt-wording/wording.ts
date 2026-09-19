@@ -1,34 +1,38 @@
 // Experiment 10: ask Jev about wording defects in H3 prompts, before and
 // after the fix commit. See README.md beside this file.
 //
-//   bun run wording --bank-repo <dir> --dry-run
+//   bun run wording --dry-run --bank-repo <dir>      build every body into the ledger
+//   bun run payloads show latest                     the owner reads them (or: html latest)
+//   bun run payloads approve <run>                   the owner approves that dry run
+//   bun run wording --send <run> --egress bank       send the approved bodies
 //
-//   --bank-repo DIR     the prompt bank repo (read with git show; never modified)
-//   --before REV        the defective versions (default 4bd7b429^)
-//   --after REV         the fixed versions (default 4bd7b429)
-//   --dry-run           build and check every request, write examples, send nothing
-//   --egress bank       allow sending to TypeSafe; the owner reads a dry run first
-//   --limit N           send only the first N requests (a smoke run)
-//   --out DIR           default runs/10-prompt-wording/<time>/
+//   --bank-repo DIR     dry run: the prompt bank repo (read with git show; never modified)
+//   --before REV        dry run: the defective versions (default 4bd7b429^)
+//   --after REV         dry run: the fixed versions (default 4bd7b429)
+//   --send RUN          send the bodies of this approved dry run (or `latest`)
+//   --egress bank       required to send: bank text leaves the machine
+//   --limit N           send: at most N more bodies (a smoke run); a later send
+//                       from the same dry run skips what was already sent
 //
-// Reads only `prompt_bank/*.txt` in that repo, at the two commits. There is no
-// option to read anything else, and a path outside that folder stops the run:
-// the owner's rule is that no prompt from any other folder, such as
-// internal/internal_prompt_bank, is ever used here.
+// A dry run reads only `prompt_bank/*.txt` in the bank repo, at the two
+// commits. There is no option to read anything else, and a path outside that
+// folder stops the run: the owner's rule is that no prompt from any other
+// folder, such as internal/internal_prompt_bank, is ever used here.
 //
-// Writes units.jsonl (keys and character counts, no text) and sources.jsonl
-// (the commit, path and blob of every text read). A dry run also
-// writes dry-run.jsonl (hash, bytes, refusal per request), questions.json and
-// examples/ (complete request bodies, bank text included; runs/ is gitignored).
-// A send writes answers.jsonl and sent.jsonl (hash, bytes, status, model, time
-// per request; never the key, a header or the body).
+// Every body goes into the egress ledger (src/ledger.ts, data/egress.sqlite)
+// exactly as it would be sent, with the commit, path and blob of its text. A
+// send transmits only an approved dry run's bodies, checks each is byte for
+// byte what was approved, and records each response beside it. It also writes
+// answers.jsonl, one row per question, to runs/10-prompt-wording/<time>/.
 
-import { createHash } from 'node:crypto';
 import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
-import { TypeSafeClient, type EntryType, type Questions } from '@typesafe-ai/sdk';
+import { ENV, TypeSafeClient, VERSION, type EntryType, type Questions } from '@typesafe-ai/sdk';
 import { refuseState } from '../../src/egress.ts';
-import { DESCRIPTION_QUESTIONS, QUESTION_VERSION, SHOT_QUESTIONS, questionsFor, stateField, unitsFor, type WordingUnit } from '../../src/wordingQuestions.ts';
+import { codeVersion, Ledger, type PayloadInput } from '../../src/ledger.ts';
+import { QUESTION_VERSION, questionsFor, stateField, unitsFor, type WordingUnit } from '../../src/wordingQuestions.ts';
+
+const EXPERIMENT = '10-prompt-wording';
 
 const { values } = parseArgs({
   options: {
@@ -36,154 +40,152 @@ const { values } = parseArgs({
     before: { type: 'string', default: '4bd7b429^' },
     after: { type: 'string', default: '4bd7b429' },
     'dry-run': { type: 'boolean', default: false },
+    send: { type: 'string' },
     egress: { type: 'string' },
     limit: { type: 'string' },
-    out: { type: 'string' },
   },
 });
-const repo = values['bank-repo'];
-if (!repo) {
-  console.error('usage: bun run wording --bank-repo <dir> [--dry-run | --egress bank] [--before REV] [--after REV] [--out DIR]');
+if (values['dry-run'] === (values.send !== undefined)) {
+  console.error('usage: bun run wording --dry-run --bank-repo <dir>  |  bun run wording --send <run> --egress bank [--limit N]');
   process.exit(2);
 }
-// The only folder read. Not an option, on purpose.
-const dir = 'prompt_bank';
-const BANK_FILE = /^prompt_bank\/[^/]+\.txt$/;
 
-function git(...args: string[]): string {
-  const run = Bun.spawnSync(['git', '-C', repo!, ...args], { stdout: 'pipe', stderr: 'pipe' });
-  if (run.exitCode !== 0) throw new Error(`git ${args[0]} failed: ${run.stderr.toString().slice(0, 300)}`);
-  return run.stdout.toString();
-}
-const lines = (text: string) => text.split('\n').filter((line) => line.trim() !== '');
-const stem = (path: string) => path.slice(path.lastIndexOf('/') + 1).replace(/\.txt$/, '');
-
-const before = git('rev-parse', '--short', values.before!).trim();
-const after = git('rev-parse', '--short', values.after!).trim();
-const files = lines(git('ls-tree', '--name-only', before, `${dir}/`)).filter((path) => path.endsWith('.txt'));
-const changed = new Set(lines(git('diff', '--name-only', before, after, '--', dir)).filter((path) => path.endsWith('.txt')));
-for (const path of [...files, ...changed]) if (!BANK_FILE.test(path)) throw new Error(`refusing a path outside ${dir}/: ${path}`);
-
-const units: WordingUnit[] = [];
-const unparsed: string[] = [];
-const sources: { prompt_id: string; version: string; commit: string; path: string; blob: string }[] = [];
-// One version of one bank file: its units, each state checked to be a verbatim
-// slice of the file, and its source recorded.
-function read(path: string, version: string, commit: string): WordingUnit[] {
-  const text = git('show', `${commit}:${path}`);
-  const found = unitsFor(stem(path), version, text);
-  for (const unit of found) {
-    const sent = Object.values(unit.state)[0] as string;
-    if (!text.includes(sent)) throw new Error(`a state is not a verbatim slice of ${path} at ${commit}`);
-  }
-  sources.push({ prompt_id: stem(path), version, commit, path, blob: git('rev-parse', `${commit}:${path}`).trim() });
-  return found;
-}
-for (const path of files) {
-  const found = changed.has(path) ? [...read(path, 'before', before), ...read(path, 'after', after)] : read(path, 'same', before);
-  if (found.length === 0) unparsed.push(stem(path));
-  units.push(...found);
-}
-
-const now = new Date().toISOString();
-const out = values.out ?? `runs/10-prompt-wording/${now.replace(/[:.]/g, '-')}`;
-mkdirSync(out, { recursive: true });
-const jsonl = (items: unknown[]) => items.map((item) => JSON.stringify(item)).join('\n') + (items.length ? '\n' : '');
-const unitKey = (unit: WordingUnit) => `${unit.prompt_id}@${unit.version}#${unit.shot ?? 'description'}`;
-writeFileSync(`${out}/sources.jsonl`, jsonl(sources));
-writeFileSync(
-  `${out}/units.jsonl`,
-  jsonl(units.map((unit) => ({ key: unitKey(unit), prompt_id: unit.prompt_id, version: unit.version, kind: unit.kind, shot: unit.shot, chars: JSON.stringify(unit.state).length }))),
-);
-
-const apiKey = process.env['TYPESAFE_API_KEY'];
-const model = process.env['TYPESAFE_DEFAULT_MODEL'] ?? 'jev-latest';
-const sha256 = (text: string) => createHash('sha256').update(text, 'utf8').digest('hex');
-// The body exactly as @typesafe-ai/sdk 0.6.0 builds it: the request, then the model.
+const apiKey = process.env[ENV.apiKey];
+const model = process.env[ENV.defaultModel] ?? 'jev-latest';
+const destination = `POST ${(process.env[ENV.baseURL] ?? 'https://api.typesafe.ai').replace(/\/+$/, '')}/v1/systemone`;
+// The headers @typesafe-ai/sdk sends, as it builds them; the key's value is never stored.
+const headers = {
+  Authorization: 'Bearer <TYPESAFE_API_KEY, not stored>',
+  Accept: 'application/json',
+  'Content-Type': 'application/json',
+  'User-Agent': `typesafe-sdk/${VERSION}`,
+  'X-TypeSafe-SDK': `typesafe-sdk/${VERSION}`,
+  'X-TypeSafe-Runtime': `bun/${Bun.version} (${process.platform}; ${process.arch})`,
+};
+// The body exactly as the SDK builds it: the request, then the model.
 const bodyOf = (unit: WordingUnit) => JSON.stringify({ state: unit.state, questions: questionsFor(unit), model });
-// A state holds exactly its unit's one field, and no credential or piece of the key.
-const guard = (unit: WordingUnit): string | undefined => {
-  const keys = Object.keys(unit.state).join(',');
-  if (keys !== stateField(unit)) return `state-fields:${keys}`;
-  return refuseState(unit.state, apiKey);
+// A state holds exactly one text field, and no credential or piece of the key.
+const guardState = (state: Record<string, unknown>, field: string): string | undefined => {
+  const keys = Object.keys(state).join(',');
+  if (keys !== field) return `state-fields:${keys}`;
+  return refuseState(state, apiKey);
 };
 
-const count = (kind: string, version?: string) => units.filter((unit) => unit.kind === kind && (version === undefined || unit.version === version)).length;
-console.log(`source: ${dir}/ only, at ${before} (before) and ${after} (after): ${files.length} prompts, ${changed.size} changed by the fix, ${unparsed.length} with no main field`);
-console.log(`files read: ${sources.length}, all under ${dir}/: ${sources.every((s) => BANK_FILE.test(s.path))}; every state a verbatim slice of its file`);
-console.log(`units: shot ${count('shot')}, description ${count('description')}; versions: same ${new Set(units.filter((u) => u.version === 'same').map((u) => u.prompt_id)).size}, before ${new Set(units.filter((u) => u.version === 'before').map((u) => u.prompt_id)).size}, after ${new Set(units.filter((u) => u.version === 'after').map((u) => u.prompt_id)).size}`);
+const ledger = new Ledger();
 
 if (values['dry-run']) {
-  const plan = units.map((unit) => {
-    const body = bodyOf(unit);
-    return { key: unitKey(unit), body_sha256: sha256(body), bytes: Buffer.byteLength(body), state_bytes: Buffer.byteLength(JSON.stringify(unit.state)), refused: guard(unit) ?? null };
-  });
-  writeFileSync(`${out}/dry-run.jsonl`, jsonl(plan));
-  writeFileSync(`${out}/questions.json`, JSON.stringify({ question_version: QUESTION_VERSION, shot: SHOT_QUESTIONS, description: DESCRIPTION_QUESTIONS }, null, 1) + '\n');
+  const repo = values['bank-repo'];
+  if (!repo) throw new Error('a dry run needs --bank-repo <dir>');
+  const git = (...args: string[]): string => {
+    const run = Bun.spawnSync(['git', '-C', repo, ...args], { stdout: 'pipe', stderr: 'pipe' });
+    if (run.exitCode !== 0) throw new Error(`git ${args[0]} failed: ${run.stderr.toString().slice(0, 300)}`);
+    return run.stdout.toString();
+  };
+  const lines = (text: string) => text.split('\n').filter((line) => line.trim() !== '');
+  const stem = (path: string) => path.slice(path.lastIndexOf('/') + 1).replace(/\.txt$/, '');
 
-  // One complete body per kind of example: a fixed prompt's shot before the
-  // fix, an untouched prompt's shot, and a fixed prompt's whole description.
-  mkdirSync(`${out}/examples`, { recursive: true });
-  const examples = [
-    units.find((unit) => unit.version === 'before' && unit.kind === 'shot'),
-    units.find((unit) => unit.version === 'same' && unit.kind === 'shot'),
-    units.find((unit) => unit.version === 'before' && unit.kind === 'description'),
-  ].filter((unit): unit is WordingUnit => unit !== undefined);
-  for (const [i, unit] of examples.entries()) {
-    writeFileSync(`${out}/examples/${i + 1}-${unit.kind}-${unit.version}.json`, JSON.stringify(JSON.parse(bodyOf(unit)), null, 1) + '\n');
-  }
+  // The only folder read. Not an option, on purpose.
+  const dir = 'prompt_bank';
+  const BANK_FILE = /^prompt_bank\/[^/]+\.txt$/;
+  const before = git('rev-parse', '--short', values.before!).trim();
+  const after = git('rev-parse', '--short', values.after!).trim();
+  const files = lines(git('ls-tree', '--name-only', before, `${dir}/`)).filter((path) => path.endsWith('.txt'));
+  const changed = new Set(lines(git('diff', '--name-only', before, after, '--', dir)).filter((path) => path.endsWith('.txt')));
+  for (const path of [...files, ...changed]) if (!BANK_FILE.test(path)) throw new Error(`refusing a path outside ${dir}/: ${path}`);
 
-  const refused = plan.filter((p) => p.refused);
-  const bytes = plan.map((p) => p.bytes).sort((a, b) => a - b);
-  const total = bytes.reduce((a, b) => a + b, 0);
-  const stateTotal = plan.reduce((a, p) => a + p.state_bytes, 0);
-  // Tokens are estimated at four bytes each; the response reports the real count.
-  const tokens = Math.round(total / 4);
-  console.log(`dry run: ${plan.length} requests would be built, ${refused.length} refused (${[...new Set(refused.map((p) => p.refused))].join(', ') || 'none'})`);
-  console.log(`request bytes: min ${bytes[0] ?? 0}, median ${bytes[Math.floor(bytes.length / 2)] ?? 0}, max ${bytes.at(-1) ?? 0}, total ${total} (bank text ${stateTotal}, question text and model id the rest)`);
-  console.log(`estimate: about ${tokens} input tokens, about $${((tokens * 0.042) / 1e6).toFixed(4)} at $0.042 per million; nothing sent`);
-  console.log(`each request: POST https://api.typesafe.ai/v1/systemone, body { state, questions, model: "${model}" }`);
-  console.log(`headers: Authorization (the key), Accept, Content-Type, User-Agent and X-TypeSafe-SDK "typesafe-sdk/0.6.0", X-TypeSafe-Runtime "bun/${Bun.version} (${process.platform}; ${process.arch})"`);
-  console.log(`wrote ${out}/ (dry-run.jsonl, questions.json, examples/${examples.length} bodies)`);
-  process.exit(0);
-}
-
-if (values.egress !== 'bank') throw new Error('this sends prompt bank text to TypeSafe: pass --egress bank, after the owner has read a dry run');
-if (!apiKey) throw new Error('needs TYPESAFE_API_KEY (in .env at the repo root)');
-const client = new TypeSafeClient({ logLevel: 'off' });
-const limit = values.limit === undefined ? Infinity : Number(values.limit);
-const usage = { requests: 0, errors: 0, refused: 0, inputTokens: 0, ms: 0, versions: new Set<string>() };
-for (const unit of units.slice(0, limit)) {
-  const refused = guard(unit);
-  if (refused) {
-    usage.refused += 1;
-    appendFileSync(`${out}/answers.jsonl`, JSON.stringify({ key: unitKey(unit), fallback: `refused:${refused}` }) + '\n');
-    continue;
-  }
-  const body = bodyOf(unit);
-  const entry = { key: unitKey(unit), body_sha256: sha256(body), bytes: Buffer.byteLength(body), status: 'ok', model: null as string | null, ms: 0, input_tokens: 0 };
-  const started = performance.now();
-  try {
-    const response = await client.systemOne({ state: unit.state as unknown as EntryType, questions: questionsFor(unit) as unknown as Questions, model });
-    entry.model = response.model;
-    entry.input_tokens = response.usage.input_tokens;
-    usage.inputTokens += response.usage.input_tokens;
-    usage.versions.add(response.model);
-    for (const [question_id, answer] of Object.entries(response.answers as unknown as Record<string, { noul?: number }>)) {
-      const row = { key: unitKey(unit), prompt_id: unit.prompt_id, version: unit.version, kind: unit.kind, shot: unit.shot, question_id, question_version: QUESTION_VERSION, noul: answer.noul ?? null, model: response.model };
-      appendFileSync(`${out}/answers.jsonl`, JSON.stringify(row) + '\n');
+  const payloads: PayloadInput[] = [];
+  const unparsed: string[] = [];
+  // One version of one bank file: a body per unit, each state checked to be a
+  // verbatim slice of the file, and the file's commit, path and blob beside it.
+  const read = (path: string, version: string, commit: string): number => {
+    const text = git('show', `${commit}:${path}`);
+    const source = { commit, path, blob: git('rev-parse', `${commit}:${path}`).trim() };
+    const units = unitsFor(stem(path), version, text);
+    for (const unit of units) {
+      const sent = Object.values(unit.state)[0] as string;
+      if (!text.includes(sent)) throw new Error(`a state is not a verbatim slice of ${path} at ${commit}`);
+      const meta = { prompt_id: unit.prompt_id, version: unit.version, kind: unit.kind, shot: unit.shot ?? 'all', question_version: QUESTION_VERSION };
+      payloads.push({ unit_key: `${unit.prompt_id}@${unit.version}#${unit.shot ?? 'description'}`, meta, source, body: bodyOf(unit), refused: guardState(unit.state, stateField(unit)) ?? null });
     }
-  } catch (error) {
-    entry.status = `error:${error instanceof Error ? error.constructor.name : 'unknown'}`;
-    usage.errors += 1;
-  } finally {
-    entry.ms = Math.round(performance.now() - started);
-    usage.ms += entry.ms;
-    usage.requests += 1;
-    appendFileSync(`${out}/sent.jsonl`, JSON.stringify(entry) + '\n');
+    return units.length;
+  };
+  for (const path of files) {
+    const found = changed.has(path) ? read(path, 'before', before) + read(path, 'after', after) : read(path, 'same', before);
+    if (found === 0) unparsed.push(stem(path));
   }
+
+  const run_id = ledger.startRun({
+    experiment: EXPERIMENT,
+    kind: 'dry-run',
+    destination,
+    headers,
+    source: { bank_dir: dir, before, after, prompts: files.length, changed_by_fix: changed.size, prompt_versions: files.length + changed.size, no_main_field: unparsed },
+    code_version: codeVersion(),
+  });
+  ledger.addPayloads(run_id, payloads);
+
+  const refused = payloads.filter((p) => p.refused !== null);
+  const bytes = payloads.map((p) => Buffer.byteLength(p.body)).sort((a, b) => a - b);
+  const total = bytes.reduce((a, b) => a + b, 0);
+  // Tokens are estimated at four bytes each; a response reports the real count.
+  const tokens = Math.round(total / 4);
+  console.log(`source: ${dir}/ only, at ${before} (before) and ${after} (after): ${files.length} prompts, ${changed.size} changed by the fix, ${files.length + changed.size} prompt versions`);
+  console.log(`bodies: ${payloads.length} (${payloads.filter((p) => p.meta['kind'] === 'shot').length} shot, ${payloads.filter((p) => p.meta['kind'] === 'description').length} description), ${refused.length} refused; every state a verbatim slice of its file`);
+  console.log(`bytes: min ${bytes[0] ?? 0}, median ${bytes[Math.floor(bytes.length / 2)] ?? 0}, max ${bytes.at(-1) ?? 0}, total ${total}; about ${tokens} input tokens, about $${((tokens * 0.042) / 1e6).toFixed(4)} at $0.042 per million`);
+  console.log(`nothing sent. Stored as dry run ${run_id}`);
+  console.log(`read it:    bun run payloads show latest   (or: bun run payloads html latest)`);
+  console.log(`approve it: bun run payloads approve "${run_id}"`);
+} else {
+  if (values.egress !== 'bank') throw new Error('a send puts prompt bank text on the network: pass --egress bank');
+  if (!apiKey) throw new Error('a send needs TYPESAFE_API_KEY (in .env at the repo root)');
+  const from = values.send === 'latest' ? ledger.runs().filter((r) => r.kind === 'dry-run' && r.experiment === EXPERIMENT).at(-1)?.run_id : values.send;
+  if (!from) throw new Error('no dry run to send from');
+  const dry = ledger.run(from);
+  if (!dry || dry.experiment !== EXPERIMENT) throw new Error(`${from} is not a dry run of ${EXPERIMENT}`);
+  if (dry.destination !== destination) throw new Error(`the dry run was built for ${dry.destination}, and this send would go to ${destination}`);
+  const approved = ledger.approvedPayloads(from);
+  const done = ledger.alreadySent(from);
+  const pending = approved.filter((p) => !done.has(p.seq));
+  const batch = pending.slice(0, values.limit === undefined ? Infinity : Number(values.limit));
+
+  const run_id = ledger.startRun({ experiment: EXPERIMENT, kind: 'send', destination, headers, source: dry.source, code_version: codeVersion(), from_run: from });
+  const out = `runs/${EXPERIMENT}/${run_id.slice(EXPERIMENT.length + 1).replace(/[:.]/g, '-')}`;
+  mkdirSync(out, { recursive: true });
+  const client = new TypeSafeClient({ logLevel: 'off' });
+  const usage = { sent: 0, errors: 0, refused: 0, inputTokens: 0, ms: 0, versions: new Set<string>() };
+
+  for (const p of batch) {
+    const request = JSON.parse(p.body) as { state: Record<string, unknown>; questions: unknown; model: string };
+    // Refuse anything that is not exactly what was approved, or that now trips the guard.
+    const again = JSON.stringify({ ...request, model: request.model });
+    const refused = again !== p.body ? 'body-changed' : guardState(request.state, String(p.meta['kind']));
+    if (refused) {
+      usage.refused += 1;
+      ledger.recordResponse(run_id, { seq: p.seq, body_sha256: p.body_sha256, status: `refused:${refused}`, model: null, ms: 0, input_tokens: null, response: null });
+      continue;
+    }
+    const started = performance.now();
+    try {
+      const response = await client.systemOne({ state: request.state as unknown as EntryType, questions: request.questions as unknown as Questions, model: request.model });
+      const ms = Math.round(performance.now() - started);
+      usage.sent += 1;
+      usage.ms += ms;
+      usage.inputTokens += response.usage.input_tokens;
+      usage.versions.add(response.model);
+      ledger.recordResponse(run_id, { seq: p.seq, body_sha256: p.body_sha256, status: 'ok', model: response.model, ms, input_tokens: response.usage.input_tokens, response: response.answers });
+      for (const [question_id, answer] of Object.entries(response.answers as unknown as Record<string, { noul?: number }>)) {
+        appendFileSync(`${out}/answers.jsonl`, JSON.stringify({ seq: p.seq, key: p.unit_key, ...p.meta, question_id, noul: answer.noul ?? null, model: response.model }) + '\n');
+      }
+    } catch (error) {
+      usage.errors += 1;
+      const status = `error:${error instanceof Error ? error.constructor.name : 'unknown'}`;
+      ledger.recordResponse(run_id, { seq: p.seq, body_sha256: p.body_sha256, status, model: null, ms: Math.round(performance.now() - started), input_tokens: null, response: null });
+    }
+  }
+  const summary = { run_id, from_run: from, approved: approved.length, already_sent: done.size, this_send: batch.length, left: pending.length - batch.length, ...usage, versions: [...usage.versions], cost_usd: (usage.inputTokens * 0.042) / 1e6 };
+  writeFileSync(`${out}/summary.json`, JSON.stringify(summary, null, 1) + '\n');
+  console.log(`send ${run_id} from ${from}: ${usage.sent} sent, ${usage.errors} errors, ${usage.refused} refused; ${summary.left} approved bodies left unsent`);
+  console.log(`jev: ${usage.inputTokens} input tokens, about $${summary.cost_usd.toFixed(6)}; model ${summary.versions.join(', ') || 'none'}`);
+  console.log(`wrote ${out}/`);
 }
-const summary = { experiment: '10-prompt-wording', before, after, prompts: files.length, changed: changed.size, units: units.length, ...usage, versions: [...usage.versions], cost_usd: (usage.inputTokens * 0.042) / 1e6 };
-writeFileSync(`${out}/summary.json`, JSON.stringify(summary, null, 1) + '\n');
-console.log(`jev: ${usage.requests} requests, ${usage.errors} errors, ${usage.refused} refused, ${usage.inputTokens} input tokens, about $${summary.cost_usd.toFixed(6)}; model ${summary.versions.join(', ') || 'none'}`);
-console.log(`wrote ${out}/`);
+ledger.close();

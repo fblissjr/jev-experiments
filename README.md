@@ -40,6 +40,17 @@ CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1 claude -p "/plugin-types"
 
 The command writes `.claude/types/`, which is gitignored.
 
+## What leaves the machine
+
+Every request to an outside service is stored first, as the exact body, in the egress ledger (`data/egress.sqlite`). Read it before approving a send:
+
+```sh
+bun run payloads                     # the runs
+bun run payloads show latest         # a run's bodies in the terminal; --where key=value, --grep, --body
+bun run payloads html latest         # the same as a local page under data/views/
+bun run payloads approve <run>       # the owner's approval; a send reads only approved runs
+```
+
 ## Checks
 
 ```sh
@@ -63,4 +74,5 @@ tests/           unit tests
 .claude/types/   function-hook declarations written by /plugin-types (local, gitignored)
 internal/        unshared notes and session logs (gitignored)
 runs/            raw experiment output (gitignored)
+data/            the egress ledger, every body sent or to be sent, and its local views (gitignored)
 ```

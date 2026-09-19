@@ -1,6 +1,6 @@
 {
   "name": "typesafe-experiments",
-  "version": "0.8.1",
+  "version": "0.9.0",
   "type": "module",
   "private": true,
   "scripts": {
@@ -9,7 +9,8 @@
     "replay": "bun experiments/01-compaction-replay/replay.ts",
     "label": "bun experiments/09-exchange-labels/label.ts",
     "eval-labels": "bun experiments/09-exchange-labels/eval.ts",
-    "wording": "bun experiments/10-prompt-wording/wording.ts"
+    "wording": "bun experiments/10-prompt-wording/wording.ts",
+    "payloads": "bun experiments/payloads.ts"
   },
   "devDependencies": {
     "@types/bun": "1.4.2"

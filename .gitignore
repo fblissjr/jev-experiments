@@ -39,6 +39,9 @@ internal/
 # raw experiment output (may carry transcript text)
 runs/
 
+# the egress ledger and its local views (every body sent or to be sent)
+data/
+
 # written by /plugin-types from the local Claude Code; Anthropic's material, never committed
 .claude/types/
 
