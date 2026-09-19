@@ -11,7 +11,7 @@ Status: draft protocol. No code. It starts once experiment 10's checker exists, 
 - The plan is hierarchical and relational, parent to child: scene, subjects, their attributes, actions, shots. A model fills it, whether Jev or another.
 - The branch may change anything that helps: the schema, the contract, the serializer. It is experimental.
 - It is built with the engine repo's own session.
-- Shot headers carry no timestamps. The engine repo's session has been asked to make that change on the engine's main branch, which the experiment branch starts from.
+- Shot headers carry no timestamps. The engine's main branch made that change in `c2e02a2` and `224b67c`, and the experiment branch starts from there. Per the owner's rulings in the engine session, the FL2VA and L2VA alignment lines keep their seconds, a time inside a shot is written only when a request asks for one, and `shots[].cutAtMs` stays as the plan's pacing without being rendered.
 
 ## Where Jev fits
 
