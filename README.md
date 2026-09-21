@@ -1,4 +1,4 @@
-last updated: 2026-09-19
+last updated: 2026-09-21
 
 # typesafe-experiments
 
@@ -69,7 +69,7 @@ A Claude Code hooks module is TypeScript, and it runs in an environment with no 
 docs/            dated records: landscape surveys, experiment results
 experiments/     one folder per experiment, plus the protocol
 src/compact/     hook-safe decision code: tool calls, protection rules, decisions, the Jev scorer
-src/             harness code: session-log reader, compaction points, metrics, scorers for the arms, exchange units, labels and label scoring, H3 prompt parsing and wording questions
+src/             harness code: session-log reader, compaction points, metrics, scorers for the arms, exchange units, labels and label scoring, branch rows and prevalence, H3 prompt parsing and wording questions
 tests/           unit tests
 .claude/types/   function-hook declarations written by /plugin-types (local, gitignored)
 internal/        unshared notes and session logs (gitignored)

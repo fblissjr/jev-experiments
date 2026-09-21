@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.12.0
+
+- Experiment 12, the branch table (`experiments/12-branch-table/`, `src/branches.ts`, `bun run branches`). Every label row becomes one row per option, with the probability the labeler gave it; a rule's or a key's answer is one row at p 1. Per question, the key's shares go beside counted top choices and summed probabilities, with each estimate's distance from the key, a seeded 90% bootstrap interval for the difference, and calibration over every option rather than only the chosen one. It reads files on disk and sends nothing. `branches.jsonl` is written for DuckDB.
+- A development run on experiment 09's synthetic labels (`docs/2026-09-21-branch-table.md`). The join reproduces experiment 09's agreement figures. Summing is clearly closer to the key only on frustration, the one question where Jev's top choice is weak, and even there it stays behind the keyword rule and the majority class. The set tuned the unit builder, so this checks the code; the test waits on a second synthetic set.
+- `src/scoring.ts` exports its join key, `rowKey`.
+
 ## 0.11.1
 
 - The dialogue rule follows the owner's ruling: a line needs a speaker id only where it is genuinely unclear who speaks, so a pronoun, a subject label, a name the prompt already gave a speaker, or the sentence's own subject all count. Across the bank it goes from 35 findings in 22 prompts to one, where a `<d>` block quotes a reused audio track rather than a character.

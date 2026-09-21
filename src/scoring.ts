@@ -34,7 +34,10 @@ export interface Score {
   majorityHits: number;
 }
 
-const rowKey = (r: ScoredRow) => `${r.native_session_id}|${r.user_entry_uuid}|${r.question_id}|${r.question_version}`;
+/** The join key: one unit's answer to one question version. */
+export type RowKeyed = Pick<ScoredRow, 'native_session_id' | 'user_entry_uuid' | 'question_id' | 'question_version'>;
+
+export const rowKey = (r: RowKeyed) => `${r.native_session_id}|${r.user_entry_uuid}|${r.question_id}|${r.question_version}`;
 
 export function score(labels: readonly ScoredRow[], key: readonly ScoredRow[]): Score[] {
   const keyByRow = new Map(key.map((r) => [rowKey(r), r]));
