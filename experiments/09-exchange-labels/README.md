@@ -1,10 +1,10 @@
-last updated: 2026-09-18
+last updated: 2026-09-21
 
 # 09: exchange labels
 
 Label each typed reply the owner gave the assistant: did it approve, correct, redirect or ask? If it corrected, what kind of correction was it, and did the reply say a rule in force was broken? The labels feed freudagent, which rolls them up into recurring patterns and proposes rules for the owner to approve. The experiment asks whether Jev labels these better than a keyword rule, and whether its confidence can be trusted.
 
-Status: the unit builder, label contract, keyword rule, Jev labeler and scoring are built. Jev has labeled the synthetic set only (`docs/2026-09-18-exchange-labels-jev-synthetic.md`). The owner's blind labels come next; real sessions are not sent until an allowlist and the owner's review of each run exist.
+Status: the unit builder, label contract, keyword rule, Jev labeler and scoring are built. Jev has labeled the synthetic set only (`docs/2026-09-18-exchange-labels-jev-synthetic.md`). The owner's blind labels come next, with `bun run judge --warehouse <archive.duckdb> --source <name>`, a local page that never leaves the machine. Real sessions are not sent until an allowlist and the owner's review of each run exist.
 
 ## Owner decisions, 2026-09-18
 

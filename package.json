@@ -1,6 +1,6 @@
 {
   "name": "typesafe-experiments",
-  "version": "0.14.0",
+  "version": "0.15.0",
   "type": "module",
   "private": true,
   "scripts": {
@@ -14,7 +14,9 @@
     "wording-key": "bun experiments/10-prompt-wording/key.ts",
     "wording-eval": "bun experiments/10-prompt-wording/eval.ts",
     "wording-rules": "bun experiments/10-prompt-wording/rules.ts",
-    "branches": "bun experiments/12-branch-table/branches.ts"
+    "branches": "bun experiments/12-branch-table/branches.ts",
+    "judge": "bun experiments/judge.ts",
+    "seeded": "bun experiments/13-seeded-sample/seeded.ts"
   },
   "devDependencies": {
     "@types/bun": "1.4.2"

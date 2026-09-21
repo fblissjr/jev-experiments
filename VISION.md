@@ -2,7 +2,7 @@ last updated: 2026-09-21
 
 # Vision: grounded branches
 
-This repository tests one idea from freudagent's `VISION.md`, the owner's design for a governed data context layer for agents, at the smallest scale where it can be tested: one model step, its outputs, and what they are measured against. That document is the parent. This one says what its idea means for a model like Jev, and what it asks of every experiment here.
+The idea behind these experiments, sized for one person tinkering: one model step, its outputs, and what they are measured against. A few of its principles are borrowed from the owner's vision in freudagent, which is written for a whole organization; the ones kept here are those that still hold with one person doing the judging.
 
 ## The short version
 
@@ -26,7 +26,7 @@ The contract is the same whatever fills it: state in, typed answers out, with a 
 
 So the model is not the asset. It can be swapped, and it will be. The asset is the data that says which answers are right, and that data outlives every model measured against it.
 
-freudagent's three kinds of work apply unchanged:
+Three kinds of work, each where it fits:
 
 - Deterministic first. Code decides what a stated rule can decide. Every experiment here has a control arm that needs no Jev: a rule, a fake asker, or the harness's own behaviour. A rule that does as well as the model is the answer, not a baseline.
 - A model step only where it can be scored. The condition is a set of items with answers people gave, measured against before the step runs at volume and sampled after.
@@ -54,7 +54,7 @@ They are kept as rows, one per unit, question and option: experiment 12's branch
 
 ## What grounds it
 
-freudagent ranks evidence, and the ranking applies here. A usage signal is weak. An explicit judgment is stronger. An approval by the person who owns the question is strongest. In this repository:
+Evidence has ranks. A usage signal is weak. An explicit judgment is stronger. An approval by the person who owns the question is strongest. In this repository:
 
 - the owner's blind labels on their own replies (experiment 09)
 - a fix commit, and the owner's approval of each fix in it (experiment 10)
@@ -63,7 +63,7 @@ freudagent ranks evidence, and the ranking applies here. A usage signal is weak.
 
 What does not ground anything:
 
-- A key a model wrote, however careful. freudagent's synthetic sets are a twin, in its sense: a rehearsal to build and debug against, never the verdict.
+- A key a model wrote, however careful. A synthetic set is a rehearsal to build and debug against, never the verdict.
 - One model agreeing with another.
 - A model's confidence, until it has been checked against people.
 
@@ -72,6 +72,18 @@ Human judgments are the one thing here that cannot be rebuilt from anything. The
 People judge what they can judge confidently. Capture goes all the way down: every option, every question, every run. The asking sits at the level where the owner can answer at a glance, because a judgment asked too finely is a guess and one asked too coarsely cannot be acted on.
 
 Disagreement is data. Two judgments that differ on the same item are both kept. Low agreement across a class of items is a finding about the question, not the person. The wording experiment showed this when its placement question scored the example of placement done right above half of the defective units.
+
+## One person, for now
+
+Here the ground truth is one person: the owner. That removes most of what an organization needs, such as a registry of who may judge what and co-approval across teams. It also removes the second opinion that would disagree with a bad judgment.
+
+So the second opinion is the same person, later. A sample of items is labeled again, blind, some time after the first pass, and the agreement is measured. Low agreement with oneself is a finding about the question, not about the person, and it caps what any model can be shown to do on that question.
+
+## Labeling never blocks
+
+The experiments do not wait for labels. They run as rehearsal until labels exist, and they use whatever labels exist once they do. Every report says how many of its units a person labeled.
+
+Labels are made cheap to give. `bun run judge` is a local page, one keypress per question, and blind: it never shows what a model or rule answered. It orders the queue so each label informs the most: close calls and disagreements first. A fixed random slice, a fifth of the units chosen by hash, is interleaved as the held-out test, so the test fills evenly while the labeling effort goes where it teaches most. A later label on the same item supersedes an earlier one, and both are kept.
 
 ## Seeds and permutations
 
@@ -83,7 +95,7 @@ This is how branches multiply without leaving the ground:
 4. People review a sample of the permutations, chosen on purpose: spread across seeds, and weighted toward thin coverage and toward close calls, where the branches disagree.
 5. The test is a slice that only people have judged, that no model process has touched and that no question was tuned against. Nothing generated is ever scored as evidence.
 
-Permutations are model-generated feedback in another form, so freudagent's controls for that apply:
+Permutations are model-generated labels in another form, so the same controls apply:
 
 - The seed's diversity matters more than its size. A narrow seed extended by a model gives labels that are consistent, plausible and wrong outside the slice they came from, and the errors compound instead of averaging out.
 - A floor on the share of judgments made by people, so generated volume cannot drown the signal it was meant to extend.
@@ -94,13 +106,13 @@ Permutations can be endless. They serve coverage, rehearsal and regression. Evid
 ## What this asks of the experiments here
 
 - Every experiment names its ground truth and who wrote it, next to its control arm. A result scored only against a key a model wrote is labeled as rehearsal wherever it is reported.
-- Every row carries its origin. The label contract's `labeler_kind` names a row's role: model, human, rule or key. A key's origin is a separate fact, and it can be a model, as it is for freudagent's synthetic sets. The contract should carry both. That change is freudagent's to agree.
+- Every row carries its origin: a person, a model or a rule. A key is a role, not an origin. A key a model wrote is a model's row, whatever role it plays.
 - New synthetic sets are seeded, not invented:
   - Each item is a permutation of a reply the owner labeled, linked to its seed and carrying the owner's label.
   - A slice judged only by the owner is held out as the test.
   - A permutation of a real reply carries the owner's text, so it goes through the same egress review its seed would.
 - Calibration comes before routing. No threshold on a model's probability decides anything until that probability's hit rate has been measured against people.
-- The owner's attention is the scarce input. Tools here make review cheap, never optional: the payloads page, a blind labeling sheet, sampling toward close calls.
+- The owner's attention is the scarce input. Tools here make review cheap, never optional: the payloads page for what leaves the machine, and `bun run judge` for labels.
 
 Where each experiment stands:
 

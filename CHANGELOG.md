@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.15.0
+
+- `bun run judge`: human labels, made quick and never blocking (`src/judge.ts`, `src/judgeView.ts`, `experiments/judge.ts`).
+  - A local page on 127.0.0.1, one keypress per question, blind to every model and rule answer. It asks experiment 09's `user_response`, `frustration`, and `correction_kind` after a correction.
+  - Disagreements and close calls come first. A fixed fifth of the units, chosen by hash, is interleaved in random order as the held-out test.
+  - Labels are appended to `data/labels/<labeler>.jsonl` as label rows every scorer reads, with whether the person was unsure and how long it took. A later label supersedes an earlier one, and both stay. It resumes where it stopped, and "cannot tell", "later" and "back" are one key each.
+  - Units come from a JSONL file or straight from a ccutils warehouse. Writes need a per-session token, so no other page in the browser can post labels.
+- Experiment 13, an agent-seeded sample (`experiments/13-seeded-sample/`, `bun run seeded`): five seed exchanges, their permutations and a key, all written by an agent, to show how Jev behaves before any grounding. The agent's key is stored with origin model. `build` writes the units, the key, the keyword rule's labels, and a ledger dry run of the Jev bodies. `report` reads the answers after the owner approves and sends. It adds checks that need no ground truth: does Jev keep its answer on paraphrases, and change it on flips. Nothing has been sent.
+- `VISION.md` stands on its own, crediting freudagent once. It adds that one person is the ground truth here, with that person's later relabels as the check on themselves, and that labeling never blocks.
+
 ## 0.14.0
 
 - `VISION.md`: models such as Jev, GLiNER or any LLM are transformation functions, and their probabilistic branches are worth keeping. They mean something only when grounded: seeded by people, extended by models, measured against people. It borrows freudagent's vision for the parts that apply here: deterministic first, model steps only where they can be scored, evidence ranked by who gave it, disagreement as data, and model-generated feedback that amplifies a human seed without substituting for it.

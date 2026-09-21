@@ -63,6 +63,17 @@ bun run payloads send <run> [--limit N]                     # posts each approve
 bun run payloads export <run> [--out FILE]                  # the answers as JSONL, for DuckDB
 ```
 
+## Labeling
+
+A person's labels are the only ground truth here (`VISION.md`), so giving them is made quick and never blocks anything:
+
+```sh
+bun run judge --units FILE [--branches FILE] --open                # a local page, one keypress per question
+bun run judge --warehouse <archive.duckdb> --source NAME --open     # the owner's own replies, from a ccutils warehouse
+```
+
+The page is blind, resumes where it stopped, and serves disagreements and close calls first, with a fixed random fifth of the units interleaved as the held-out test. Labels go to `data/labels/<labeler>.jsonl` (gitignored) as label rows every scorer reads. Reports use whatever labels exist and say how many.
+
 ## Checks
 
 ```sh
@@ -78,7 +89,7 @@ A Claude Code hooks module is TypeScript, and it runs in an environment with no 
 ## Layout
 
 ```
-VISION.md        why: grounded branches, borrowed from freudagent's vision
+VISION.md        why: grounded branches, and labels that never block
 docs/            dated records: landscape surveys, experiment results
 experiments/     one folder per experiment, plus the protocol
 src/compact/     hook-safe decision code: tool calls, protection rules, decisions, the Jev scorer
