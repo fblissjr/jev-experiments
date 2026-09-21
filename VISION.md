@@ -6,7 +6,7 @@ The idea behind these experiments, sized for one person tinkering: one model ste
 
 ## The short version
 
-Jev, GLiNER, a small classifier and a frontier LLM are the same kind of thing: a universal transformation function. Unstructured state goes in and a typed answer comes out. From the models that expose it, you also get a probability for every answer the model could have given. Those are probabilistic branches, and keeping them is better than keeping one reply. A chat turn hands back one sampled answer and throws away the rest of what the model computed.
+LLMs are a universal transformation function. Data goes in and transformed data comes out. From the models that expose it, you also get a probability for every answer the model could have given. Those are probabilistic branches, and keeping them is better than keeping one reply. A chat turn hands back one sampled answer and throws away the rest of what the model computed.
 
 But a branch is a model's opinion with a number attached. Suppose a model proposes the answers and weighs them, and is then scored against a key another model wrote. Nothing has checked it. The important part, deciding what counts as right, has been outsourced to the thing under test.
 
@@ -22,25 +22,9 @@ Seeded by people, extended by models, measured against people. There can be as m
 
 ## Models are transformation functions
 
-The contract is the same whatever fills it: state in, typed answers out, with a distribution where the model gives one and the versions recorded. Jev answers choice, score and yes-or-no questions. GLiNER finds typed spans. An LLM writes the text leaves no smaller model can. A rule answers whatever can be stated precisely.
+Different models do it different ways, but really we often want to do this: data in, transformed data out, with a distribution where the model gives one. Jev answers choice, score and yes-or-no questions, but really needs few-shot examples or labeled data to do well - like everything else. GLiNER finds typed spans. An LLM writes the text leaves no smaller model can. A rule answers whatever can be stated precisely.
 
-So the model is not the asset. It can be swapped, and it will be. The asset is the data that says which answers are right, and that data outlives every model measured against it.
-
-Three kinds of work, each where it fits:
-
-- Deterministic first. Code decides what a stated rule can decide. Every experiment here has a control arm that needs no Jev: a rule, a fake asker, or the harness's own behaviour. A rule that does as well as the model is the answer, not a baseline.
-- A model step only where it can be scored. The condition is a set of items with answers people gave, measured against before the step runs at volume and sampled after.
-- Agent runs explore and propose. What they produce is a proposal a person approves, not a change.
-- Inference is where new rules are discovered. Code is where settled rules live.
-
-A model step here is registered as data:
-
-- the question and its version, where a changed question is a new version and never an edit
-- the options and their hash
-- the model version that answered
-- the content hash of the input
-
-The label contract, the egress ledger, and duckdb-jev's `jev_request` and `jev_answer` exist to hold exactly this.
+So the model is not the source of truth. 
 
 ## Branches are the output
 
@@ -48,9 +32,7 @@ A single request already branches three ways:
 
 - Across questions: many typed questions about one state, answered together.
 - Within a question: the probability of every option, not only the top one.
-- Down a hierarchy: the branch taken at one level goes into the state of the next. Experiment 11 plans a scene this way: subjects, then their attributes, then their actions, then shots.
-
-They are kept as rows, one per unit, question and option: experiment 12's branch table, and duckdb-jev's `_p` maps. A row never carries more authority than its origin. A branch's weight means something only once it has been checked against people. Calibration is measured per question version, and measured again when the model changes. A probability nobody has calibrated will route work wrongly, and with confidence.
+- Down a hierarchy: the branch taken at one level goes into the state of the next.
 
 ## What grounds it
 
@@ -113,14 +95,6 @@ Permutations can be endless. They serve coverage, rehearsal and regression. Evid
   - A permutation of a real reply carries the owner's text, so it goes through the same egress review its seed would.
 - Calibration comes before routing. No threshold on a model's probability decides anything until that probability's hit rate has been measured against people.
 - The owner's attention is the scarce input. Tools here make review cheap, never optional: the payloads page for what leaves the machine, and `bun run judge` for labels.
-
-Where each experiment stands:
-
-- 09, exchange labels: the synthetic run is rehearsal. The test is the owner's blind labels, with a held-out slice.
-- 10, wording defects: grounded in the owner's fix commit and approvals. What it needs is more pairs. Permutations of the fixed clauses can grow a development set, never the test.
-- 11, structured generation: the owner's blind choice between outputs, and the renders, are the ground truth. Jev's branches for a field are proposals those choices rank.
-- 12, the branch table: its first result is agreement with a key a model wrote. Its test needs units people labeled.
-- duckdb-jev and the ledger: the transformation function in SQL, and the owner's approval of every body before it leaves.
 
 ## What would show this is wrong
 
