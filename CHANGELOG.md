@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.13.0
+
+- The egress ledger closes three gaps (`src/ledger.ts`):
+  - Approval records a digest of the run's destination, headers, and each body's order, hash and refusal. A send refuses the run if any of them changed, so an edit that rewrites a body together with its hash is caught, and so is a lifted refusal.
+  - An approved dry run takes no new bodies.
+  - Two runs started in the same millisecond get distinct ids.
+  - The ledger adds its new column on first open. A dry run approved before digests existed can no longer be sent. Experiment 10's approved run is the only one, and every body in it was already sent.
+- Bodies built outside the harness, and a send that transmits stored bytes (`src/send.ts`):
+  - `bun run payloads import <experiment> --from FILE` makes a dry run from JSONL lines `{unit_key, meta, body}`. Each body must be exactly a Jev request, and the credential and key check runs over the whole body, questions included. It is for bodies a SQL query builds, such as duckdb-jev's.
+  - `bun run payloads send <run>` posts each approved body byte for byte with `fetch`, rather than parsing it and letting a client rebuild it. It puts the key in place of the stored header placeholder, checks the body again with the key loaded, and retries 408, 429, 5xx and dropped connections twice, honouring Retry-After. It never takes `latest`.
+  - `bun run payloads export <run>` writes the answers as JSONL, each with a `response` string `{"model", "answers"}` for DuckDB.
+- A run against a mock server on 127.0.0.1 confirmed every body arrived byte-identical, including one with a JSON escape that re-serializing would change. Nothing was sent to TypeSafe.
+
 ## 0.12.0
 
 - Experiment 12, the branch table (`experiments/12-branch-table/`, `src/branches.ts`, `bun run branches`). Every label row becomes one row per option, with the probability the labeler gave it; a rule's or a key's answer is one row at p 1. Per question, the key's shares go beside counted top choices and summed probabilities, with each estimate's distance from the key, a seeded 90% bootstrap interval for the difference, and calibration over every option rather than only the chosen one. It reads files on disk and sends nothing. `branches.jsonl` is written for DuckDB.

@@ -49,6 +49,53 @@ describe('Ledger', () => {
     expect(() => ledger.approvedPayloads(run)).toThrow('no longer matches its hash');
   });
 
+  test('no body can be added to a dry run once it is approved', () => {
+    const { ledger, run } = ledgerWithRun(['a']);
+    ledger.approve(run);
+    expect(() => ledger.addPayloads(run, [payload('unreviewed')])).toThrow('already approved');
+    expect(ledger.payloads(run)).toHaveLength(1);
+  });
+
+  test('a body and its hash edited together after approval are refused', () => {
+    const { ledger, run } = ledgerWithRun(['a', 'b']);
+    ledger.approve(run);
+    ledger.db.query('UPDATE payloads SET body = ?, body_sha256 = ? WHERE run_id = ? AND seq = 2').run(body('tampered'), sha256(body('tampered')), run);
+    expect(() => ledger.approvedPayloads(run)).toThrow('changed since it was approved');
+  });
+
+  test('a refusal lifted after approval is refused', () => {
+    const { ledger, run } = ledgerWithRun(['a', 'b'], [null, 'credential:jwt']);
+    ledger.approve(run);
+    ledger.db.query('UPDATE payloads SET refused = NULL WHERE run_id = ? AND seq = 2').run(run);
+    expect(() => ledger.approvedPayloads(run)).toThrow('changed since it was approved');
+  });
+
+  test('a destination or header changed after approval is refused', () => {
+    const { ledger, run } = ledgerWithRun(['a']);
+    ledger.approve(run);
+    ledger.db.query('UPDATE runs SET destination = ? WHERE run_id = ?').run('POST https://elsewhere.invalid/v1/x', run);
+    expect(() => ledger.approvedPayloads(run)).toThrow('changed since it was approved');
+    const second = ledgerWithRun(['a']);
+    second.ledger.approve(second.run);
+    second.ledger.db.query('UPDATE runs SET headers = ? WHERE run_id = ?').run(JSON.stringify({ 'X-Extra': '1' }), second.run);
+    expect(() => second.ledger.approvedPayloads(second.run)).toThrow('changed since it was approved');
+  });
+
+  test('a dry run approved before approvals recorded a digest is not sendable', () => {
+    const { ledger, run } = ledgerWithRun(['a']);
+    ledger.db.query('UPDATE runs SET approved_at = ? WHERE run_id = ?').run('2026-09-19T00:00:00.000Z', run);
+    expect(() => ledger.approvedPayloads(run)).toThrow('approve a new dry run');
+  });
+
+  test('two runs started in the same millisecond get distinct ids', () => {
+    const ledger = new Ledger(':memory:');
+    const at = new Date('2026-09-19T00:00:00.000Z');
+    const first = ledger.startRun(RUN, at);
+    const second = ledger.startRun(RUN, at);
+    expect(second).not.toBe(first);
+    expect(ledger.run(second)!.created_at).toBe(at.toISOString());
+  });
+
   test('approval happens once, and only for a dry run', () => {
     const { ledger, run } = ledgerWithRun(['a']);
     ledger.approve(run);

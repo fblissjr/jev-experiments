@@ -51,6 +51,16 @@ bun run payloads html latest         # the same as a local page under data/views
 bun run payloads approve <run>       # the owner's approval; a send reads only approved runs
 ```
 
+Approval records a digest of the run's destination, headers, bodies and refusals. A send refuses the run if any of them changed afterwards, and an approved run takes no new bodies.
+
+Bodies built outside the harness come in the same way. A SQL query can write exact Jev requests to a JSONL file of `{unit_key, meta, body}` lines, and then:
+
+```sh
+bun run payloads import <experiment> --from bodies.jsonl   # a dry run, reviewed and approved as above
+bun run payloads send <run> [--limit N]                     # posts each approved body byte for byte
+bun run payloads export <run> [--out FILE]                  # the answers as JSONL, for DuckDB
+```
+
 ## Checks
 
 ```sh

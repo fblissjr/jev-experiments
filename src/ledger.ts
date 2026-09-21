@@ -28,7 +28,8 @@ CREATE TABLE IF NOT EXISTS runs (
   source       TEXT NOT NULL,
   code_version TEXT NOT NULL,
   approved_at  TEXT,
-  from_run     TEXT REFERENCES runs(run_id)
+  from_run     TEXT REFERENCES runs(run_id),
+  approved_digest TEXT
 );
 CREATE TABLE IF NOT EXISTS payloads (
   run_id      TEXT NOT NULL REFERENCES runs(run_id),
@@ -127,7 +128,17 @@ export interface RunSummary {
   errors: number;
 }
 
-export const sha256 = (text: string) => createHash('sha256').update(text, 'utf8').digest('hex');
+/** One body's answers, as `answered` reads them back. */
+export interface Answered {
+  seq: number;
+  unit_key: string;
+  meta: Record<string, unknown>;
+  model: string | null;
+  input_tokens: number | null;
+  answers: unknown;
+}
+
+export const sha256 =(text: string) => createHash('sha256').update(text, 'utf8').digest('hex');
 
 type Row = Record<string, string | number | null>;
 
@@ -139,15 +150,24 @@ export class Ledger {
     this.db = new Database(path, { create: true, strict: true });
     this.db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
     this.db.exec(SCHEMA);
+    // Ledgers made before approvals recorded a digest lack the column.
+    const columns = this.db.query('PRAGMA table_info(runs)').all() as { name: string }[];
+    if (!columns.some((c) => c.name === 'approved_digest')) this.db.exec('ALTER TABLE runs ADD COLUMN approved_digest TEXT');
   }
 
   close(): void {
     this.db.close();
   }
 
-  /** A new run. Its id is the experiment and the time, to the millisecond. */
+  /**
+   * A new run. Its id is the experiment and the time, to the millisecond,
+   * with a suffix when another run already took that millisecond.
+   */
   startRun(input: RunInput, now = new Date()): string {
-    const run_id = `${input.experiment}/${now.toISOString()}`;
+    const base = `${input.experiment}/${now.toISOString()}`;
+    const taken = (id: string) => this.db.query('SELECT 1 FROM runs WHERE run_id = ?').get(id) !== null;
+    let run_id = base;
+    for (let n = 2; taken(run_id); n += 1) run_id = `${base}-${n}`;
     this.db
       .query('INSERT INTO runs (run_id, experiment, kind, created_at, destination, headers, source, code_version, from_run) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
       .run(run_id, input.experiment, input.kind, now.toISOString(), input.destination, JSON.stringify(input.headers), JSON.stringify(input.source), input.code_version, input.from_run ?? null);
@@ -159,6 +179,7 @@ export class Ledger {
     const run = this.run(run_id);
     if (!run) throw new Error(`no run ${run_id}`);
     if (run.kind !== 'dry-run') throw new Error('bodies are stored on a dry run; a send reads them from one');
+    if (run.approved_at) throw new Error(`${run_id} was already approved at ${run.approved_at}; new bodies need a new dry run`);
     const insert = this.db.query(
       'INSERT INTO payloads (run_id, seq, unit_key, meta, source, body, body_sha256, bytes, refused) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
     );
@@ -173,8 +194,9 @@ export class Ledger {
   run(run_id: string): Run | undefined {
     const row = this.db.query('SELECT * FROM runs WHERE run_id = ?').get(run_id) as Row | null;
     if (!row) return undefined;
+    const { approved_digest: _digest, ...rest } = row;
     return {
-      ...(row as unknown as Run),
+      ...(rest as unknown as Run),
       headers: JSON.parse(String(row['headers'])),
       source: JSON.parse(String(row['source'])),
     };
@@ -208,18 +230,34 @@ export class Ledger {
     if (!run) throw new Error(`no run ${run_id}`);
     if (run.kind !== 'dry-run') throw new Error('only a dry run is approved');
     if (run.approved_at) throw new Error(`already approved at ${run.approved_at}`);
-    this.db.query('UPDATE runs SET approved_at = ? WHERE run_id = ?').run(now.toISOString(), run_id);
+    this.db.query('UPDATE runs SET approved_at = ?, approved_digest = ? WHERE run_id = ?').run(now.toISOString(), this.digest(run_id), run_id);
+  }
+
+  /**
+   * Everything that decides what a send transmits, as one hash: where it
+   * goes, the headers, and each body's order, hash and refusal. Recorded at
+   * approval, so any later change to them is caught, even an edit that
+   * rewrites a body and its hash together.
+   */
+  private digest(run_id: string): string {
+    const run = this.db.query('SELECT destination, headers FROM runs WHERE run_id = ?').get(run_id) as { destination: string; headers: string };
+    const bodies = this.db.query('SELECT seq, body_sha256, refused FROM payloads WHERE run_id = ? ORDER BY seq').all(run_id) as { seq: number; body_sha256: string; refused: string | null }[];
+    return sha256(JSON.stringify([run.destination, run.headers, bodies.map((b) => [b.seq, b.body_sha256, b.refused])]));
   }
 
   /**
    * The bodies a send may transmit: an approved dry run's, refused ones left
-   * out, each checked against its stored hash.
+   * out, each checked against its stored hash and the whole set against the
+   * digest taken at approval.
    */
   approvedPayloads(run_id: string): Payload[] {
     const run = this.run(run_id);
     if (!run) throw new Error(`no run ${run_id}`);
     if (run.kind !== 'dry-run') throw new Error(`${run_id} is not a dry run`);
     if (!run.approved_at) throw new Error(`${run_id} has not been approved: review it with bun run payloads, then approve it`);
+    const { approved_digest } = this.db.query('SELECT approved_digest FROM runs WHERE run_id = ?').get(run_id) as { approved_digest: string | null };
+    if (!approved_digest) throw new Error(`${run_id} was approved before approvals recorded a digest: build and approve a new dry run`);
+    if (this.digest(run_id) !== approved_digest) throw new Error(`${run_id} has changed since it was approved: its destination, headers, bodies or refusals differ`);
     const payloads = this.payloads(run_id);
     for (const p of payloads) if (sha256(p.body) !== p.body_sha256) throw new Error(`body ${p.seq} of ${run_id} no longer matches its hash`);
     return payloads.filter((p) => p.refused === null);
@@ -229,6 +267,27 @@ export class Ledger {
     this.db
       .query('INSERT INTO responses (run_id, seq, body_sha256, status, model, ms, input_tokens, response, sent_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
       .run(run_id, r.seq, r.body_sha256, r.status, r.model, r.ms, r.input_tokens, r.response === undefined ? null : JSON.stringify(r.response), now.toISOString());
+  }
+
+  /**
+   * The answers a run got back, one row per body, in the dry run's order.
+   * For a dry run, every send from it; for a send, that send alone. Only
+   * responses recorded as ok against the body's own hash are read.
+   */
+  answered(run_id: string): Answered[] {
+    const run = this.run(run_id);
+    if (!run) throw new Error(`no run ${run_id}`);
+    const rows = this.db
+      .query(
+        `SELECT p.seq AS seq, p.unit_key AS unit_key, p.meta AS meta, r.model AS model, r.input_tokens AS input_tokens, r.response AS response
+         FROM responses r
+         JOIN runs s ON s.run_id = r.run_id
+         JOIN payloads p ON p.run_id = s.from_run AND p.seq = r.seq AND p.body_sha256 = r.body_sha256
+         WHERE r.status = 'ok' AND ${run.kind === 'dry-run' ? 's.from_run' : 's.run_id'} = ?
+         ORDER BY p.seq`,
+      )
+      .all(run_id) as { seq: number; unit_key: string; meta: string; model: string | null; input_tokens: number | null; response: string }[];
+    return rows.map((row) => ({ ...row, meta: JSON.parse(row.meta), answers: JSON.parse(row.response) }));
   }
 
   /** Seqs of the dry run that earlier sends from it already transmitted successfully. */
