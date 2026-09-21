@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.13.1
+
+- CLAUDE.md: duckdb-jev's sending functions are never called here. Bodies built in SQL with `jev_request` come in through `bun run payloads import`, and `jev_answer` reads the answers. The whole path was run against a mock server on 127.0.0.1: bodies built in DuckDB, imported, approved, sent byte-identical, exported, and read back as typed columns and one row per option. Nothing was sent to TypeSafe.
+
 ## 0.13.0
 
 - The egress ledger closes three gaps (`src/ledger.ts`):
