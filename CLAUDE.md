@@ -1,4 +1,4 @@
-# typesafe-experiments
+# jev-experiments
 
 Read `README.md` for setup and layout, `VISION.md` for why the experiments are shaped as they are, and the newest dated doc in `docs/` for where things stand.
 

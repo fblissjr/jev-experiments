@@ -1,6 +1,6 @@
 last updated: 2026-09-21
 
-# typesafe-experiments
+# jev-experiments
 
 experimenting with jev inside claude code and agy and other harnesses
 

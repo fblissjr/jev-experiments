@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.15.1
+
+- The repo is now `jev-experiments`: the package name and the `README.md` and `CLAUDE.md` headings follow. `bun.lock` keeps the old root name until a dependency change next rewrites it, since regenerating it now would also move a transitive version.
+
 ## 0.15.0
 
 - `bun run judge`: human labels, made quick and never blocking (`src/judge.ts`, `src/judgeView.ts`, `experiments/judge.ts`).
