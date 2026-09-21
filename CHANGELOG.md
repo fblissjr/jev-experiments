@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.14.0
+
+- `VISION.md`: models such as Jev, GLiNER or any LLM are transformation functions, and their probabilistic branches are worth keeping. They mean something only when grounded: seeded by people, extended by models, measured against people. It borrows freudagent's vision for the parts that apply here: deterministic first, model steps only where they can be scored, evidence ranked by who gave it, disagreement as data, and model-generated feedback that amplifies a human seed without substituting for it.
+- The protocol and `CLAUDE.md` now require every experiment to name its ground truth and who wrote it. A result scored only against a key a model wrote, including freudagent's synthetic sets, is rehearsal and is labeled so.
+- Branch rows carry their origin (`labeler_kind`).
+- Experiment 12's test is now the owner's blind labels with a held-out slice, not a second synthetic set, and its first run is labeled rehearsal against a model's key.
+
 ## 0.13.1
 
 - CLAUDE.md: duckdb-jev's sending functions are never called here. Bodies built in SQL with `jev_request` come in through `bun run payloads import`, and `jev_answer` reads the answers. The whole path was run against a mock server on 127.0.0.1: bodies built in DuckDB, imported, approved, sent byte-identical, exported, and read back as typed columns and one row per option. Nothing was sent to TypeSafe.

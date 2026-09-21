@@ -1,10 +1,11 @@
 # typesafe-experiments
 
-Read `README.md` for setup and layout, and the newest dated doc in `docs/` for where things stand.
+Read `README.md` for setup and layout, `VISION.md` for why the experiments are shaped as they are, and the newest dated doc in `docs/` for where things stand.
 
 ## Rules
 
 - Every experiment has a control arm that needs no Jev: a rule, a fake asker, or the harness's own behaviour. A Jev result without its control is not a finding.
+- Every experiment names its ground truth and who wrote it. Only people ground a result. Scored only against a key a model wrote, including freudagent's synthetic sets, a result is rehearsal, and it says so wherever it is reported. Generated items keep their origin and a link to the human seed they came from, and are never the test.
 - Session transcripts are never committed. Raw run output goes in `runs/` (gitignored). A committed result carries rates and comparisons between arms: no transcript text, and no count that describes the owner's usage (sessions, projects, messages, replies, context sizes).
 - A real-Jev arm sends conversation state, source code included, to TypeSafe. Run it only on sessions the owner picked.
 - Anything sent to an outside service goes through the egress ledger (`src/ledger.ts`, `data/egress.sqlite`). A dry run stores every exact body, the owner reviews it with `bun run payloads` and approves it, and a send transmits only that approved run's bodies. Experiment 09's synthetic labeler predates the ledger.

@@ -6,7 +6,7 @@ Every Jev answer comes with a probability for each option it was offered, and ev
 
 The first use tested is prevalence: what share of units falls in each option. It is what a table of labels is usually for ("which complaints are growing"), and it is where the two readings of the same answers differ. Counting top choices throws away every unit's doubt; summing probabilities keeps it.
 
-Status: protocol written 2026-09-21. The code runs on experiment 09's existing labels, which is a development check, not the test (see Sets).
+Status: protocol written 2026-09-21. The code runs on experiment 09's existing labels, which is rehearsal against a key a model wrote, not the test (see Sets).
 
 ## Hypothesis
 
@@ -34,14 +34,18 @@ Per question and labeler, on the units the key labels and the labeler answered w
 
 Each unit's probabilities are divided by their sum before use. Jev rounds them to two places, so they sum to between 0.99 and 1.0.
 
+## Ground truth
+
+The key the shares are measured against, and who wrote it. `VISION.md` holds that only people ground anything, so a result against a key a model wrote is rehearsal.
+
 ## Kill condition
 
-On a set nothing was tuned on, summing loses if its difference from counting has a 90% interval above zero on fewer than three of the four questions. Then prevalence is not a reason to keep the distribution, and the table's case rests on the other uses (margins for escalation, calibration) until they are tested.
+On units the owner labeled, in a slice no question was tuned against, summing loses if its difference from counting has a 90% interval above zero on fewer than three of the four questions. Then prevalence is not a reason to keep the distribution, and the table's case rests on the other uses (margins for escalation, calibration) until they are tested.
 
 ## Sets
 
-- Development: freudagent `9833c59`'s synthetic set, labeled in experiment 09 (`runs/09-exchange-labels/jev-synthetic-9833c59/`). It tuned the unit builder and was planted to be readable from the reply alone, so its result is a check of the code, not of the hypothesis.
-- Test: the second synthetic set planned in experiment 09, when it exists. Its Jev answers are to come through the path in the owner's 2026-09-21 plan: bodies built in DuckDB, stored as a ledger dry run, approved by the owner, then sent.
+- Rehearsal: freudagent `9833c59`'s synthetic set, labeled in experiment 09 (`runs/09-exchange-labels/jev-synthetic-9833c59/`). A model wrote both the replies and the key, the key was tuned against by the unit builder, and each signal was planted to be readable from the reply alone. Its result checks the code and says nothing about the hypothesis.
+- Test: units the owner labeled blind, in experiment 09's labeling sheet, with a held-out slice. More units may be grown from them as permutations that carry the owner's label and a link to their seed, as `VISION.md` describes. Those serve development only; the held-out slice is the test. Jev's answers come through the ledger: bodies built in DuckDB with `jev_request`, a dry run the owner reviews and approves, then the send.
 
 ## The branch table
 
@@ -51,6 +55,7 @@ One row per unit, question, labeler and option. It is the contract for every pro
 |---|---|
 | `native_session_id`, `user_entry_uuid`, `question_id`, `question_version` | the unit and question, as in label rows |
 | `options_hash` | the option set asked, as in label rows; null for a score |
+| `labeler_kind` | the row's origin, as the label contract names it: model, human, rule or key |
 | `labeler`, `labeler_version` | who answered; for Jev, the versioned model id |
 | `option` | the option's label; for a score, the level as a string (`"0"`, `"1"`, ...) |
 | `p` | its probability, normalized; 1 for a rule's or key's single answer |

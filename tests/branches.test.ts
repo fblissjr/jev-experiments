@@ -3,7 +3,7 @@ import { optionCalibration, prevalence, toBranches, tvd, type BranchSource } fro
 import type { ScoredRow } from '../src/scoring.ts';
 
 const label = (uuid: string, labeler: string, value: string | number, probabilities: Record<string, number> | null, options_hash: string | null = 'h'): BranchSource => ({
-  native_session_id: 's', user_entry_uuid: uuid, question_id: 'q', question_version: 'v1', options_hash, labeler, labeler_version: `${labeler}-1`, value, probabilities,
+  native_session_id: 's', user_entry_uuid: uuid, question_id: 'q', question_version: 'v1', options_hash, labeler_kind: probabilities === null ? 'rule' : 'model', labeler, labeler_version: `${labeler}-1`, value, probabilities,
 });
 const keyRow = (uuid: string, value: string, options_hash: string | null = 'h'): ScoredRow => ({
   native_session_id: 's', user_entry_uuid: uuid, question_id: 'q', question_version: 'v1', labeler: 'key', value, options_hash,
@@ -24,6 +24,11 @@ describe('toBranches', () => {
 
   test("a rule's answer is one row at p 1", () => {
     expect(toBranches([label('1', 'keyword', 'b', null)]).map((r) => [r.option, r.p, r.is_top])).toEqual([['b', 1, true]]);
+  });
+
+  test('every row keeps the origin of the label it came from', () => {
+    const rows = toBranches([label('1', 'jev', 'a', { a: 0.6, b: 0.4 }), label('1', 'keyword', 'b', null)]);
+    expect(rows.map((r) => [r.labeler, r.labeler_kind])).toEqual([['jev', 'model'], ['jev', 'model'], ['keyword', 'rule']]);
   });
 
   test('a distribution without the answer, or with a negative probability, is refused', () => {

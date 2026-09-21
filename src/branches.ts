@@ -12,6 +12,8 @@ import { rowKey, type Bucket, type RowKeyed, type ScoredRow } from './scoring.ts
 
 export interface BranchRow extends RowKeyed {
   options_hash: string | null;
+  /** The row's origin, as the label contract names it: model, human, rule or key. Filters are written against it. */
+  labeler_kind: LabelRow['labeler_kind'];
   labeler: string;
   labeler_version: string;
   /** The option's label; for a score, the level as a string. */
@@ -24,7 +26,7 @@ export interface BranchRow extends RowKeyed {
 
 export type BranchSource = Pick<
   LabelRow,
-  'native_session_id' | 'user_entry_uuid' | 'question_id' | 'question_version' | 'options_hash' | 'labeler' | 'labeler_version' | 'value' | 'probabilities'
+  'native_session_id' | 'user_entry_uuid' | 'question_id' | 'question_version' | 'options_hash' | 'labeler_kind' | 'labeler' | 'labeler_version' | 'value' | 'probabilities'
 >;
 
 /**
@@ -42,6 +44,7 @@ export function toBranches(rows: readonly BranchSource[]): BranchRow[] {
       question_id: row.question_id,
       question_version: row.question_version,
       options_hash: row.options_hash,
+      labeler_kind: row.labeler_kind,
       labeler: row.labeler,
       labeler_version: row.labeler_version,
     };

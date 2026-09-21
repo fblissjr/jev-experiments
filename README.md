@@ -4,6 +4,8 @@ last updated: 2026-09-21
 
 experimenting with jev inside claude code and agy and other harnesses
 
+Why it is done this way is in [VISION.md](VISION.md): models like Jev are transformation functions whose branches are worth keeping, and they mean something only when grounded in people's judgments.
+
 ## Setup
 
 ```sh
@@ -76,6 +78,7 @@ A Claude Code hooks module is TypeScript, and it runs in an environment with no 
 ## Layout
 
 ```
+VISION.md        why: grounded branches, borrowed from freudagent's vision
 docs/            dated records: landscape surveys, experiment results
 experiments/     one folder per experiment, plus the protocol
 src/compact/     hook-safe decision code: tool calls, protection rules, decisions, the Jev scorer

@@ -2,7 +2,7 @@ last updated: 2026-09-21
 
 # The branch table on experiment 09's labels: 2026-09-21
 
-A dated record of experiment 12's first run. The protocol is in `experiments/12-branch-table/README.md`. This run is a development check of the code, not a test of the hypothesis: the set it reads tuned experiment 09's unit builder.
+A dated record of experiment 12's first run. The protocol is in `experiments/12-branch-table/README.md`. This run is rehearsal, not a test of the hypothesis. A model wrote both the replies and the key they are scored against, and the set tuned experiment 09's unit builder. Every figure below is agreement with a model's answers, not with a person's (`VISION.md`).
 
 ## Setup
 
@@ -32,7 +32,7 @@ Each figure is the total variation distance from the key's shares: 0 is exact, 1
 
 ## Against the kill condition
 
-The condition applies to a set nothing was tuned on, so it is not applied here. Had it been, summing would have lost: its interval is above zero on one question of four, and the condition needs three.
+The condition applies to units the owner labeled, so it is not applied here. Had it been, summing would have lost: its interval is above zero on one question of four, and the condition needs three.
 
 This set makes the top choice unusually accurate. Its generator planted each signal so it can be read from the reply alone, which leaves little room for a distribution to help. The test set may not behave the same way.
 
@@ -47,9 +47,9 @@ Every `(unit, option, p)` is treated as a forecast that the option is the key's 
 
 - Keeping the distribution did not improve prevalence where Jev's top choice is reliable, and it helped where the top choice is weak. On this set, the case for keeping every option does not rest on counting.
 - The calibration result points to a use worth testing. On three questions, both ends of the scale are well calibrated. But the middle, where a close call between two options would sit, holds too few options on this set to say whether a close call means real doubt. If it does, the gap between the top two options is the input to routing: which units go to a stronger reviewer. The cascade experiment in the owner's plan is what would test that.
-- None of this has been tested on data the code was not developed against.
+- None of this has been measured against a person's judgment.
 
 ## Next
 
-- Run on the second synthetic set when it exists, through the path in the owner's plan: bodies built in DuckDB, a ledger dry run the owner approves, then the send.
+- Run on units the owner labeled blind, with a held-out slice as the test, through the ledger path: bodies built in DuckDB, a dry run the owner approves, then the send. A second synthetic set invented from the question definitions would still be a model's key; `VISION.md` says why it is not the test.
 - Before that set is seen, the owner decides whether to add a second, narrower question alongside the unchanged kill condition: does summing gain where the top choice agrees less than, say, 80% of the time? This run suggests it, so it would be a new hypothesis, stated before the test and not in place of the old one.

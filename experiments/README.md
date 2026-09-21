@@ -8,6 +8,7 @@ Each experiment gets a folder `experiments/NN-slug/`. Its README states these be
 
 - Hypothesis: what Jev should decide better, and better than what.
 - Control: the arm without Jev. A rule, a fake asker that gives a fixed answer, or the harness's own behaviour.
+- Ground truth: what the arms are scored against, and who wrote it. Only people ground a result (`VISION.md`). Against a key a model wrote, the experiment is rehearsal, and its results say so.
 - Measure: the numbers compared across arms, and how each one is computed.
 - Kill condition: the result that ends the experiment.
 - Egress: what leaves the machine, and to whom.
@@ -34,4 +35,4 @@ Ordered by dependency. Compaction comes first because it is what prompted the re
 | 09 | Exchange labels: each typed reply of the owner labeled for approval, correction kind, rule broken and frustration, feeding freudagent | a keyword rule, the majority class, and the owner's blind labels | unit builder, keyword and Jev arms built; Jev run on the synthetic set 2026-09-18; real sessions wait on an allowlist and the owner's review |
 | 10 | Wording defects in H3 video prompts that the format checks miss: an unplaced person, an action with no agent, a contradicted count. Matched pairs from the prompt bank's fix commit | the format grader, rules for the mechanical classes, a fake asker | run 2026-09-19: placement killed as worded, agentless action survives on two pairs, counts are noise (`docs/2026-09-19-prompt-wording-jev.md`) |
 | 11 | Structured generation of H3 prompts on an engine branch: a hierarchical scene plan filled field by field and rolled up into the prompt | the engine's current single-call planner, and the same plan filled by an LLM alone | owner decisions recorded 2026-09-19; built with the engine repo's session once 10's checker exists |
-| 12 | The branch table: every option Jev gave, one row each, and whether summing its probabilities estimates prevalence better than counting its top choices | counted top choices, the keyword rule, the majority class | development run on 09's synthetic labels 2026-09-21: summing is clearly closer only on frustration, the one question where the top choice is weak (`docs/2026-09-21-branch-table.md`); the test waits on a second synthetic set |
+| 12 | The branch table: every option Jev gave, one row each, and whether summing its probabilities estimates prevalence better than counting its top choices | counted top choices, the keyword rule, the majority class | rehearsal on 09's synthetic labels 2026-09-21, against a key a model wrote: summing is clearly closer only on frustration, the one question where the top choice is weak (`docs/2026-09-21-branch-table.md`); the test waits on the owner's blind labels |
